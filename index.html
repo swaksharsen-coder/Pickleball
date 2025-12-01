@@ -12,7 +12,10 @@
       box-shadow:0 2px 8px rgba(0,0,0,0.12);
     }
     h1,h2 { text-align:center; margin-top:0; }
-    .tabs { display:flex; justify-content:center; gap:10px; margin-bottom:15px; flex-wrap:wrap; }
+    .tabs {
+      display:flex; justify-content:center; gap:10px;
+      margin-bottom:15px; flex-wrap:wrap;
+    }
     .tab-button {
       padding:8px 14px; border-radius:20px; border:1px solid #007bff;
       background:#fff; cursor:pointer; font-size:0.9rem;
@@ -25,7 +28,10 @@
       flex:1 1 300px; background:#fafafa; padding:15px 20px;
       border-radius:8px; box-shadow:0 1px 4px rgba(0,0,0,0.08);
     }
-    label { display:block; margin-bottom:4px; font-size:0.9rem; font-weight:bold; }
+    label {
+      display:block; margin-bottom:4px;
+      font-size:0.9rem; font-weight:bold;
+    }
     input, select, button {
       width:100%; padding:7px 9px; margin-bottom:10px;
       border-radius:4px; border:1px solid #ccc; font-size:0.9rem;
@@ -58,8 +64,13 @@
       width:auto; padding:3px 8px; font-size:0.75rem;
       background:#dc3545; color:#fff;
     }
-    .sort-row { display:flex; justify-content:flex-end; gap:10px; margin-bottom:5px; }
-    .sort-row select { width:auto; }
+    .sort-row {
+      display:flex; flex-wrap:wrap;
+      justify-content:flex-end; gap:10px; margin-bottom:5px;
+      align-items:center;
+    }
+    .sort-row label { margin-bottom:0; font-weight:normal; }
+    #ratingCurveCanvas { width:100%; height:260px; }
     @media (max-width:700px) {
       th, td { font-size:0.8rem; }
     }
@@ -74,6 +85,8 @@
       <button class="tab-button active" data-tab="matches">Matches</button>
       <button class="tab-button" data-tab="players">Players</button>
       <button class="tab-button" data-tab="stats">Stats</button>
+      <button class="tab-button" data-tab="teams">Team Suggestion</button>
+      <button class="tab-button" data-tab="curves">Rating Curves</button>
       <button class="tab-button" data-tab="admin">Admin</button>
     </div>
 
@@ -95,19 +108,18 @@
           <label>Team 2 - Player 2</label>
           <select id="team2p2"></select>
 
+          <label for="kFactor">Base K-Factor (rating sensitivity)</label>
+          <input type="number" id="kFactor" value="32" min="1" max="100" />
+
+          <button id="predictBtn" type="button">Predict Winning %</button>
+          <div id="predictionDisplay" class="msg"></div>
+
           <label for="score1">Final Score (Team 1)</label>
           <input type="number" id="score1" placeholder="e.g. 11" />
 
           <label for="score2">Final Score (Team 2)</label>
           <input type="number" id="score2" placeholder="e.g. 9" />
 
-          <label for="kFactor">Base K-Factor (rating sensitivity)</label>
-          <input type="number" id="kFactor" value="32" min="1" max="100" />
-
-<button id="predictBtn" type="button">Predict Winning %</button>
-<div id="predictionDisplay" class="msg"></div>
-
-          
           <button id="recordMatchBtn">Record Match (Winner auto-detected)</button>
           <div id="matchMessage" class="msg"></div>
           <p class="small">
@@ -118,7 +130,7 @@
 
       <h2 style="margin-top:25px;">Match History</h2>
       <div class="sort-row">
-        <label style="margin-bottom:0;">Sort by date:</label>
+        <label>Sort by date:</label>
         <select id="matchSort">
           <option value="newest">Newest first</option>
           <option value="oldest">Oldest first</option>
@@ -143,7 +155,7 @@
     <div id="tab-players" class="tab-content">
       <h2>Players</h2>
       <div class="sort-row">
-        <label style="margin-bottom:0;">Sort players by:</label>
+        <label>Sort players by:</label>
         <select id="playerSort">
           <option value="ratingDesc">Rating (high → low)</option>
           <option value="ratingAsc">Rating (low → high)</option>
@@ -198,6 +210,34 @@
       </table>
     </div>
 
+    <!-- TAB: TEAM SUGGESTION -->
+    <div id="tab-teams" class="tab-content">
+      <h2>Best Team Combination (2 vs 2)</h2>
+      <div class="card">
+        <label for="availablePlayers">Select available players (Ctrl/Shift + click to select multiple)</label>
+        <select id="availablePlayers" multiple size="8"></select>
+        <button id="suggestTeamsBtn">Suggest Best Match</button>
+        <div id="teamSuggestion" class="msg"></div>
+        <p class="small">
+          We select 4 players and split them into 2 vs 2 with the most balanced Player Ratings.
+        </p>
+      </div>
+    </div>
+
+    <!-- TAB: RATING CURVES -->
+    <div id="tab-curves" class="tab-content">
+      <h2>Rating Curves</h2>
+      <div class="card">
+        <label for="ratingCurvePlayerSelect">Select Player</label>
+        <select id="ratingCurvePlayerSelect"></select>
+        <button id="showCurveBtn">Show Rating Curve</button>
+        <div id="curveMessage" class="msg"></div>
+      </div>
+      <div class="card" style="margin-top:15px;">
+        <canvas id="ratingCurveCanvas"></canvas>
+      </div>
+    </div>
+
     <!-- TAB: ADMIN -->
     <div id="tab-admin" class="tab-content">
       <div class="flex">
@@ -247,9 +287,10 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <!-- Chart.js for rating curves -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <script>
-    // Your Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyCxH9Zda7Yx31CN3jimkUZkuDEg4ecaqQ8",
       authDomain: "pickleball-elo.firebaseapp.com",
@@ -258,7 +299,6 @@
       messagingSenderId: "115251632176",
       appId: "1:115251632176:web:20c5cd2a72ad37c44bf5f5"
     };
-
     const MASTER_ADMIN_EMAIL = "swaksharsen@gmail.com";
 
     firebase.initializeApp(firebaseConfig);
@@ -271,6 +311,8 @@
       matches: document.getElementById("tab-matches"),
       players: document.getElementById("tab-players"),
       stats: document.getElementById("tab-stats"),
+      teams: document.getElementById("tab-teams"),
+      curves: document.getElementById("tab-curves"),
       admin: document.getElementById("tab-admin")
     };
     tabButtons.forEach(btn => {
@@ -283,9 +325,7 @@
       });
     });
 
-    // --- DOM references ---
-    const predictBtn = document.getElementById("predictBtn");
-const predictionDisplay = document.getElementById("predictionDisplay");
+    // --- DOM refs ---
     const adminEmailInput = document.getElementById("adminEmail");
     const adminPasswordInput = document.getElementById("adminPassword");
     const loginBtn = document.getElementById("loginBtn");
@@ -305,9 +345,11 @@ const predictionDisplay = document.getElementById("predictionDisplay");
     const team1p2Select = document.getElementById("team1p2");
     const team2p1Select = document.getElementById("team2p1");
     const team2p2Select = document.getElementById("team2p2");
+    const kFactorInput = document.getElementById("kFactor");
+    const predictBtn = document.getElementById("predictBtn");
+    const predictionDisplay = document.getElementById("predictionDisplay");
     const score1Input = document.getElementById("score1");
     const score2Input = document.getElementById("score2");
-    const kFactorInput = document.getElementById("kFactor");
     const recordMatchBtn = document.getElementById("recordMatchBtn");
     const matchMessageDiv = document.getElementById("matchMessage");
     const matchSortSelect = document.getElementById("matchSort");
@@ -322,27 +364,38 @@ const predictionDisplay = document.getElementById("predictionDisplay");
     const statsSummaryDiv = document.getElementById("statsSummary");
     const playerMatchesBody = document.querySelector("#playerMatchesTable tbody");
 
+    const availablePlayersSelect = document.getElementById("availablePlayers");
+    const suggestTeamsBtn = document.getElementById("suggestTeamsBtn");
+    const teamSuggestionDiv = document.getElementById("teamSuggestion");
+
+    const ratingCurvePlayerSelect = document.getElementById("ratingCurvePlayerSelect");
+    const showCurveBtn = document.getElementById("showCurveBtn");
+    const curveMessageDiv = document.getElementById("curveMessage");
+    const ratingCurveCanvas = document.getElementById("ratingCurveCanvas");
+
+    let ratingCurveChart = null;
+
     let currentUser = null;
     let isAdmin = false;
-    let players = [];       // {id, name, rating, wins, losses, matches}
-    let matchesGlobal = []; // {id, ...data}
+    let players = [];
+    let matchesGlobal = [];
 
-    // --- Utility ---
+    // --- Utils ---
     function timeString(ts) {
       const d = ts && ts.toDate ? ts.toDate() : new Date();
       return d.toLocaleString();
     }
     function setAdminUI(visible) {
       document.querySelectorAll(".admin-only").forEach(el => {
-        el.style.display = visible ? "table-cell" : "none";
-      });
-      // Cards (admin-only) inside admin tab:
-      document.querySelectorAll(".card.admin-only").forEach(el => {
-        el.style.display = visible ? "block" : "none";
+        if (el.tagName === "TD" || el.tagName === "TH") {
+          el.style.display = visible ? "table-cell" : "none";
+        } else {
+          el.style.display = visible ? "block" : "none";
+        }
       });
     }
     function playerWinPercent(p) {
-      const total = p.wins + p.losses;
+      const total = (p.matches ?? (p.wins + p.losses));
       if (!total) return "0%";
       return ((p.wins / total) * 100).toFixed(1) + "%";
     }
@@ -363,40 +416,6 @@ const predictionDisplay = document.getElementById("predictionDisplay");
       return ratings.reduce((a,b)=>a+b,0) / ratings.length;
     }
 
-predictBtn.addEventListener("click", () => {
-  predictionDisplay.textContent = "";
-  predictionDisplay.className = "msg";
-
-  const team1 = [team1p1Select.value, team1p2Select.value].filter(Boolean);
-  const team2 = [team2p1Select.value, team2p2Select.value].filter(Boolean);
-
-  if (team1.length !== 2 || team2.length !== 2) {
-    predictionDisplay.textContent = "Select 2 players for each team to calculate winning percentage.";
-    predictionDisplay.classList.add("error");
-    return;
-  }
-
-  const all = [...team1, ...team2];
-  if (new Set(all).size !== all.length) {
-    predictionDisplay.textContent = "A player cannot be on both teams.";
-    predictionDisplay.classList.add("error");
-    return;
-  }
-
-  const r1 = teamRating(team1);
-  const r2 = teamRating(team2);
-
-  const P1 = expectedScore(r1, r2);
-  const P2 = 1 - P1;
-
-  predictionDisplay.innerHTML =
-    `<b>${teamLabel(team1)}</b> Win Chance: <b>${(P1 * 100).toFixed(1)}%</b><br>` +
-    `<b>${teamLabel(team2)}</b> Win Chance: <b>${(P2 * 100).toFixed(1)}%</b>`;
-  predictionDisplay.classList.add("success");
-});
-
-
-    
     // --- Auth ---
     loginBtn.addEventListener("click", () => {
       const email = adminEmailInput.value.trim();
@@ -410,7 +429,7 @@ predictBtn.addEventListener("click", () => {
       }
       auth.signInWithEmailAndPassword(email, pass)
         .then(() => {
-          authMessageDiv.textContent = "Login successful. You are now an admin.";
+          authMessageDiv.textContent = "Login successful. You are now an admin (if authorized).";
           authMessageDiv.classList.add("success");
         })
         .catch(err => {
@@ -456,7 +475,7 @@ predictBtn.addEventListener("click", () => {
       checkAdmin(user);
     });
 
-    // --- Player management ---
+    // --- Player mgmt ---
     addPlayerBtn.addEventListener("click", async () => {
       playerMessageDiv.textContent = "";
       playerMessageDiv.className = "msg";
@@ -490,7 +509,7 @@ predictBtn.addEventListener("click", () => {
 
     async function deletePlayer(id) {
       if (!isAdmin) return;
-      if (!confirm("Delete this player? (Matches will remain)")) return;
+      if (!confirm("Delete this player? (Matches remain; ratings not undone)")) return;
       try {
         await db.collection("players").doc(id).delete();
       } catch (err) {
@@ -498,7 +517,7 @@ predictBtn.addEventListener("click", () => {
       }
     }
 
-    // --- Admin management ---
+    // --- Admin mgmt ---
     addAdminBtn.addEventListener("click", async () => {
       adminManageMessageDiv.textContent = "";
       adminManageMessageDiv.className = "msg";
@@ -530,15 +549,17 @@ predictBtn.addEventListener("click", () => {
     db.collection("players").onSnapshot(snapshot => {
       players = [];
       snapshot.forEach(doc => players.push({ id: doc.id, ...doc.data() }));
-      fillPlayerSelects();
+      fillTeamSelects();
       renderPlayersTable();
       fillStatsPlayerSelect();
-      renderMatchesTable(); // team names use players list
+      renderMatchesTable();
+      fillAvailablePlayersSelect();
+      fillRatingCurveSelect();
     });
 
-    function fillPlayerSelects() {
-      const selects = [team1p1Select, team1p2Select, team2p1Select, team2p2Select];
-      selects.forEach(sel => {
+    function fillTeamSelects() {
+      const sels = [team1p1Select, team1p2Select, team2p1Select, team2p2Select];
+      sels.forEach(sel => {
         sel.innerHTML = "<option value=''>-- Select Player --</option>";
         players.forEach(p => {
           const opt = document.createElement("option");
@@ -559,13 +580,14 @@ predictBtn.addEventListener("click", () => {
       if (sortVal === "nameAsc") arr.sort((a,b)=>a.name.localeCompare(b.name));
 
       arr.forEach(p => {
+        const totalMatches = p.matches ?? (p.wins + p.losses);
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td>${p.name}</td>
           <td>${p.rating}</td>
           <td>${p.wins}</td>
           <td>${p.losses}</td>
-          <td>${p.matches ?? (p.wins + p.losses)}</td>
+          <td>${totalMatches}</td>
           <td>${playerWinPercent(p)}</td>
           <td class="admin-only"></td>
         `;
@@ -579,14 +601,14 @@ predictBtn.addEventListener("click", () => {
         }
         playersBody.appendChild(tr);
       });
-      setAdminUI(isAdmin); // to show/hide actions column
+      setAdminUI(isAdmin);
     }
     playerSortSelect.addEventListener("change", renderPlayersTable);
 
     // --- Matches listener ---
     db.collection("matches")
       .orderBy("timestamp", "desc")
-      .limit(200)
+      .limit(300)
       .onSnapshot(snapshot => {
         matchesGlobal = [];
         snapshot.forEach(doc => matchesGlobal.push({ id: doc.id, ...doc.data() }));
@@ -604,9 +626,12 @@ predictBtn.addEventListener("click", () => {
       });
       arr.forEach(m => {
         const tr = document.createElement("tr");
-        const team1Label = teamLabel(m.team1 || m.teamA || []);
-        const team2Label = teamLabel(m.team2 || m.teamB || []);
-        const winnerLabel = m.winner === "team1" || m.winner === "A" ? team1Label : team2Label;
+        const t1 = m.team1 || m.teamA || [];
+        const t2 = m.team2 || m.teamB || [];
+        const team1Label = teamLabel(t1);
+        const team2Label = teamLabel(t2);
+        const winnerLabel =
+          (m.winner === "team1" || m.winner === "A") ? team1Label : team2Label;
         const scoreStr = (m.score1 != null && m.score2 != null)
           ? `${m.score1} - ${m.score2}` : "-";
         tr.innerHTML = `
@@ -633,7 +658,7 @@ predictBtn.addEventListener("click", () => {
 
     async function deleteMatch(id) {
       if (!isAdmin) return;
-      if (!confirm("Delete this match? Ratings will not be automatically undone.")) return;
+      if (!confirm("Delete this match? Ratings will NOT be undone.")) return;
       try {
         await db.collection("matches").doc(id).delete();
       } catch (err) {
@@ -641,11 +666,42 @@ predictBtn.addEventListener("click", () => {
       }
     }
 
+    // --- Predict winning % ---
+    predictBtn.addEventListener("click", () => {
+      predictionDisplay.textContent = "";
+      predictionDisplay.className = "msg";
+
+      const t1 = [team1p1Select.value, team1p2Select.value].filter(Boolean);
+      const t2 = [team2p1Select.value, team2p2Select.value].filter(Boolean);
+
+      if (t1.length !== 2 || t2.length !== 2) {
+        predictionDisplay.textContent = "Select 2 players for each team to predict winning percentage.";
+        predictionDisplay.classList.add("error");
+        return;
+      }
+      const all = [...t1, ...t2];
+      if (new Set(all).size !== all.length) {
+        predictionDisplay.textContent = "A player cannot be on both teams.";
+        predictionDisplay.classList.add("error");
+        return;
+      }
+
+      const r1 = teamRating(t1);
+      const r2 = teamRating(t2);
+      const P1 = expectedScore(r1, r2);
+      const P2 = 1 - P1;
+
+      predictionDisplay.innerHTML =
+        `<b>${teamLabel(t1)}</b> Win Chance: <b>${(P1*100).toFixed(1)}%</b><br>` +
+        `<b>${teamLabel(t2)}</b> Win Chance: <b>${(P2*100).toFixed(1)}%</b>`;
+      predictionDisplay.classList.add("success");
+    });
+
     // --- Record match (weighted score, full save) ---
     recordMatchBtn.addEventListener("click", async () => {
-      predictionDisplay.textContent = "";
       matchMessageDiv.textContent = "";
       matchMessageDiv.className = "msg";
+
       const t1 = [team1p1Select.value, team1p2Select.value].filter(Boolean);
       const t2 = [team2p1Select.value, team2p2Select.value].filter(Boolean);
       if (t1.length !== 2 || t2.length !== 2) {
@@ -659,6 +715,7 @@ predictBtn.addEventListener("click", () => {
         matchMessageDiv.classList.add("error");
         return;
       }
+
       const s1 = parseInt(score1Input.value, 10);
       const s2 = parseInt(score2Input.value, 10);
       if (isNaN(s1) || isNaN(s2)) {
@@ -676,6 +733,7 @@ predictBtn.addEventListener("click", () => {
         matchMessageDiv.classList.add("error");
         return;
       }
+
       const winnerTeam = s1 > s2 ? "team1" : "team2";
 
       const baseK = parseInt(kFactorInput.value, 10);
@@ -690,10 +748,11 @@ predictBtn.addEventListener("click", () => {
       const marginFactor = 1 + scoreDiff / 10;
       const kEff = K * marginFactor;
 
-      const S1 = winnerTeam === "team1" ? 1 : 0;
-      const S2 = winnerTeam === "team2" ? 1 : 0;
+      const S1 = (winnerTeam === "team1") ? 1 : 0;
+      const S2 = (winnerTeam === "team2") ? 1 : 0;
 
       const playerIds = [...t1, ...t2];
+
       try {
         const docs = await Promise.all(
           playerIds.map(id => db.collection("players").doc(id).get())
@@ -713,11 +772,12 @@ predictBtn.addEventListener("click", () => {
           playerRatings[id] = { before, after };
           batch.update(db.collection("players").doc(id), {
             rating: after,
-            wins: p.wins + (S1 === 1 ? 1 : 0),
-            losses: p.losses + (S1 === 1 ? 0 : 1),
+            wins: p.wins + (S1 ? 1 : 0),
+            losses: p.losses + (S1 ? 0 : 1),
             matches: (p.matches ?? (p.wins + p.losses)) + 1
           });
         });
+
         // Team 2
         t2.forEach(id => {
           const p = fresh[id];
@@ -727,13 +787,13 @@ predictBtn.addEventListener("click", () => {
           playerRatings[id] = { before, after };
           batch.update(db.collection("players").doc(id), {
             rating: after,
-            wins: p.wins + (S2 === 1 ? 1 : 0),
-            losses: p.losses + (S2 === 1 ? 0 : 1),
+            wins: p.wins + (S2 ? 1 : 0),
+            losses: p.losses + (S2 ? 0 : 1),
             matches: (p.matches ?? (p.wins + p.losses)) + 1
           });
         });
 
-        // Save match document
+        // Save match
         const matchRef = db.collection("matches").doc();
         batch.set(matchRef, {
           timestamp: firebase.firestore.FieldValue.serverTimestamp(),
@@ -752,6 +812,7 @@ predictBtn.addEventListener("click", () => {
         });
 
         await batch.commit();
+        predictionDisplay.textContent = "";
         matchMessageDiv.textContent = "Match recorded successfully.";
         matchMessageDiv.classList.add("success");
       } catch (err) {
@@ -798,7 +859,6 @@ predictBtn.addEventListener("click", () => {
 
       let wins = 0;
       let losses = 0;
-
       matchesForPlayer.forEach(m => {
         const inTeam1 = (m.team1 || m.teamA || []).includes(pid);
         const inTeam2 = (m.team2 || m.teamB || []).includes(pid);
@@ -820,7 +880,6 @@ predictBtn.addEventListener("click", () => {
         <p><b>Winning Percentage:</b> ${winPercent}</p>
       `;
 
-      // Table: list matches
       playerMatchesBody.innerHTML = "";
       matchesForPlayer
         .slice()
@@ -831,9 +890,11 @@ predictBtn.addEventListener("click", () => {
         })
         .forEach(m => {
           const tr = document.createElement("tr");
-          const team1Label = teamLabel(m.team1 || m.teamA || []);
-          const team2Label = teamLabel(m.team2 || m.teamB || []);
-          const inTeam1 = (m.team1 || m.teamA || []).includes(pid);
+          const t1 = m.team1 || m.teamA || [];
+          const t2 = m.team2 || m.teamB || [];
+          const team1Label = teamLabel(t1);
+          const team2Label = teamLabel(t2);
+          const inTeam1 = t1.includes(pid);
           const teamOfPlayer = inTeam1 ? "team1" : "team2";
           const won = (m.winner === "team1" || m.winner === "A") === (teamOfPlayer === "team1");
           const resultStr = won ? "Win" : "Loss";
@@ -855,6 +916,165 @@ predictBtn.addEventListener("click", () => {
           `;
           playerMatchesBody.appendChild(tr);
         });
+    });
+
+    // --- Team Suggestion tab ---
+    function fillAvailablePlayersSelect() {
+      availablePlayersSelect.innerHTML = "";
+      players.forEach(p => {
+        const opt = document.createElement("option");
+        opt.value = p.id;
+        opt.textContent = `${p.name} (${p.rating})`;
+        availablePlayersSelect.appendChild(opt);
+      });
+    }
+
+    function bestTeamsFromSelection(ids) {
+      if (ids.length < 4) return null;
+      let best = null;
+
+      // all combinations of 4
+      for (let i = 0; i < ids.length; i++) {
+        for (let j = i+1; j < ids.length; j++) {
+          for (let k = j+1; k < ids.length; k++) {
+            for (let l = k+1; l < ids.length; l++) {
+              const quad = [ids[i], ids[j], ids[k], ids[l]];
+              const [a,b,c,d] = quad;
+
+              const partitions = [
+                [[a,b],[c,d]],
+                [[a,c],[b,d]],
+                [[a,d],[b,c]]
+              ];
+              partitions.forEach(([t1,t2]) => {
+                const r1 = teamRating(t1);
+                const r2 = teamRating(t2);
+                const diff = Math.abs(r1 - r2);
+                if (!best || diff < best.diff) {
+                  best = { team1:t1, team2:t2, r1, r2, diff };
+                }
+              });
+            }
+          }
+        }
+      }
+      return best;
+    }
+
+    suggestTeamsBtn.addEventListener("click", () => {
+      teamSuggestionDiv.textContent = "";
+      teamSuggestionDiv.className = "msg";
+
+      const selected = Array.from(availablePlayersSelect.selectedOptions).map(o => o.value);
+      if (selected.length < 4) {
+        teamSuggestionDiv.textContent = "Select at least 4 players.";
+        teamSuggestionDiv.classList.add("error");
+        return;
+      }
+
+      const best = bestTeamsFromSelection(selected);
+      if (!best) {
+        teamSuggestionDiv.textContent = "Could not find a valid combination.";
+        teamSuggestionDiv.classList.add("error");
+        return;
+      }
+
+      const label1 = teamLabel(best.team1);
+      const label2 = teamLabel(best.team2);
+      const P1 = expectedScore(best.r1, best.r2);
+      const P2 = 1 - P1;
+
+      teamSuggestionDiv.innerHTML =
+        `<b>Suggested Match:</b><br>` +
+        `<b>Team 1:</b> ${label1} (Rating: ${best.r1.toFixed(1)})<br>` +
+        `<b>Team 2:</b> ${label2} (Rating: ${best.r2.toFixed(1)})<br>` +
+        `<b>Balance (rating diff):</b> ${best.diff.toFixed(1)}<br><br>` +
+        `<b>Predicted Winning Chances:</b><br>` +
+        `${label1}: ${(P1*100).toFixed(1)}%<br>` +
+        `${label2}: ${(P2*100).toFixed(1)}%`;
+      teamSuggestionDiv.classList.add("success");
+    });
+
+    // --- Rating Curves tab ---
+    function fillRatingCurveSelect() {
+      ratingCurvePlayerSelect.innerHTML = "<option value=''>-- Select Player --</option>";
+      players.forEach(p => {
+        const opt = document.createElement("option");
+        opt.value = p.id;
+        opt.textContent = p.name + " (" + p.rating + ")";
+        ratingCurvePlayerSelect.appendChild(opt);
+      });
+    }
+
+    showCurveBtn.addEventListener("click", () => {
+      curveMessageDiv.textContent = "";
+      curveMessageDiv.className = "msg";
+      const pid = ratingCurvePlayerSelect.value;
+      if (!pid) {
+        curveMessageDiv.textContent = "Please select a player.";
+        curveMessageDiv.classList.add("error");
+        if (ratingCurveChart) { ratingCurveChart.destroy(); ratingCurveChart = null; }
+        return;
+      }
+      const player = players.find(p => p.id === pid);
+      if (!player) {
+        curveMessageDiv.textContent = "Player not found.";
+        curveMessageDiv.classList.add("error");
+        if (ratingCurveChart) { ratingCurveChart.destroy(); ratingCurveChart = null; }
+        return;
+      }
+
+      // Build rating history from matchesGlobal
+      const history = [];
+      matchesGlobal.forEach(m => {
+        if (m.playerRatings && m.playerRatings[pid]) {
+          const after = m.playerRatings[pid].after;
+          const ts = m.timestamp || null;
+          if (typeof after === "number") {
+            const tMillis = ts?.toMillis ? ts.toMillis() : null;
+            history.push({ rating: after, ts, tMillis });
+          }
+        }
+      });
+
+      // If no match history, show flat line at current rating
+      if (!history.length) {
+        const now = new Date();
+        history.push({
+          rating: player.rating,
+          ts: { toDate: () => now },
+          tMillis: now.getTime()
+        });
+      }
+
+      history.sort((a,b) => (a.tMillis ?? 0) - (b.tMillis ?? 0));
+
+      const labels = history.map(h => h.ts ? timeString(h.ts) : "N/A");
+      const data = history.map(h => h.rating);
+
+      if (ratingCurveChart) {
+        ratingCurveChart.destroy();
+      }
+
+      ratingCurveChart = new Chart(ratingCurveCanvas.getContext("2d"), {
+        type: "line",
+        data: {
+          labels,
+          datasets: [{
+            label: player.name + " - Player Rating",
+            data,
+            tension: 0.25
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { title: { display: true, text: "Match Time" } },
+            y: { title: { display: true, text: "Player Rating" } }
+          }
+        }
+      });
     });
   </script>
 </body>
