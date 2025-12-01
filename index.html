@@ -89,6 +89,7 @@
     .google-btn:hover {
       background:#f4f4f4;
     }
+    .admin-tab { display:none; } /* Admin tab button hidden until user is admin */
     @media (max-width:700px) {
       th, td { font-size:0.8rem; }
     }
@@ -105,7 +106,8 @@
       <button class="tab-button" data-tab="stats">Stats</button>
       <button class="tab-button" data-tab="teams">Team Suggestion</button>
       <button class="tab-button" data-tab="curves">Rating Curves</button>
-      <button class="tab-button" data-tab="admin">Admin</button>
+      <button class="tab-button" data-tab="signin">Sign In</button>
+      <button class="tab-button admin-tab" data-tab="admin">Admin</button>
     </div>
 
     <!-- TAB: MATCHES -->
@@ -247,12 +249,11 @@
       </div>
     </div>
 
-    <!-- TAB: ADMIN -->
-    <div id="tab-admin" class="tab-content">
+    <!-- TAB: SIGN IN -->
+    <div id="tab-signin" class="tab-content">
       <div class="flex">
-        <!-- LOGIN / AUTH -->
         <div class="card" style="max-width:400px;">
-          <h2 style="font-size:1.1rem; text-align:left;">Login / Account</h2>
+          <h2 style="font-size:1.1rem; text-align:left;">Sign In / Account</h2>
 
           <label for="adminEmail">Email</label>
           <input type="email" id="adminEmail" placeholder="you@example.com" />
@@ -272,7 +273,12 @@
           <div id="authMessage" class="msg"></div>
           <p class="small" id="adminStatus">Not logged in.</p>
         </div>
+      </div>
+    </div>
 
+    <!-- TAB: ADMIN (only visible if isAdmin = true) -->
+    <div id="tab-admin" class="tab-content">
+      <div class="flex">
         <!-- PLAYER MGMT -->
         <div class="card admin-only">
           <h2 style="font-size:1.1rem; text-align:left;">Player Management</h2>
@@ -346,8 +352,11 @@
       stats: document.getElementById("tab-stats"),
       teams: document.getElementById("tab-teams"),
       curves: document.getElementById("tab-curves"),
+      signin: document.getElementById("tab-signin"),
       admin: document.getElementById("tab-admin")
     };
+    const adminTabButton = document.querySelector(".tab-button.admin-tab");
+
     tabButtons.forEach(btn => {
       btn.addEventListener("click", () => {
         const tab = btn.getAttribute("data-tab");
@@ -423,12 +432,27 @@
     let players = [];
     let matchesGlobal = [];
 
+    // -------- Audit logging helper --------
+    function logAction(action, details = {}) {
+      if (!currentUser) return Promise.resolve(); // writes already require login
+      return db.collection("auditLogs").add({
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        userEmail: currentUser.email || null,
+        userUid: currentUser.uid || null,
+        action,
+        details
+      }).catch(err => {
+        console.error("Audit log error:", err);
+      });
+    }
+
     // Utils
     function timeString(ts) {
       const d = ts && ts.toDate ? ts.toDate() : new Date();
       return d.toLocaleString();
     }
     function setAdminUI(visible) {
+      // show/hide admin-only elements
       document.querySelectorAll(".admin-only").forEach(el => {
         if (el.tagName === "TD" || el.tagName === "TH") {
           el.style.display = visible ? "table-cell" : "none";
@@ -436,6 +460,10 @@
           el.style.display = visible ? "block" : "none";
         }
       });
+      // show/hide Admin tab button
+      if (adminTabButton) {
+        adminTabButton.style.display = visible ? "inline-block" : "none";
+      }
     }
     function playerWinPercent(p) {
       const total = (p.matches ?? (p.wins + p.losses));
@@ -596,13 +624,14 @@
         return;
       }
       try {
-        await db.collection("players").add({
+        const ref = await db.collection("players").add({
           name,
           rating: 1600,
           wins: 0,
           losses: 0,
           matches: 0
         });
+        await logAction("ADD_PLAYER", { playerId: ref.id, name });
         newPlayerNameInput.value = "";
         playerMessageDiv.textContent = "Player added.";
         playerMessageDiv.classList.add("success");
@@ -617,6 +646,7 @@
       if (!confirm("Delete this player? (Matches remain; ratings not undone)")) return;
       try {
         await db.collection("players").doc(id).delete();
+        await logAction("DELETE_PLAYER", { playerId: id });
       } catch (err) {
         alert("Error deleting player: " + err.message);
       }
@@ -646,6 +676,7 @@
         await db.collection("admins").doc(email).set({
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
+        await logAction("ADD_ADMIN", { adminEmail: email });
         adminManageMessageDiv.textContent = "Admin added: " + email;
         adminManageMessageDiv.classList.add("success");
         newAdminEmailInput.value = "";
@@ -772,6 +803,7 @@
       if (!confirm("Delete this match? Ratings will NOT be undone.")) return;
       try {
         await db.collection("matches").doc(id).delete();
+        await logAction("DELETE_MATCH", { matchId: id });
       } catch (err) {
         alert("Error deleting match: " + err.message);
       }
@@ -932,6 +964,15 @@
         });
 
         await batch.commit();
+        await logAction("ADD_MATCH", {
+          matchId: matchRef.id,
+          team1: t1,
+          team2: t2,
+          winner: winnerTeam,
+          score1: s1,
+          score2: s2
+        });
+
         predictionDisplay.textContent = "";
         matchMessageDiv.textContent = "Match recorded successfully.";
         matchMessageDiv.classList.add("success");
@@ -1265,6 +1306,13 @@
 
       try {
         await db.collection("players").doc(pid).update({
+          rating,
+          wins,
+          losses,
+          matches
+        });
+        await logAction("EDIT_PLAYER_STATS", {
+          playerId: pid,
           rating,
           wins,
           losses,
