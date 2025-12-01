@@ -24,7 +24,7 @@
       cursor:pointer;
       font-size:0.9rem;
       font-weight:600;
-      color:#007bff;        /* TEXT ALWAYS VISIBLE */
+      color:#007bff;      /* Always visible text */
     }
     .tab-button:hover {
       background:#e7f1ff;
@@ -281,11 +281,36 @@
             The email must be a Firebase Auth user. Admins can change anything (players, matches, admins).
           </p>
         </div>
+
+        <!-- PLAYER STAT EDIT (NEW) -->
+        <div class="card admin-only">
+          <h2 style="font-size:1.1rem; text-align:left;">Edit Player Stats</h2>
+          <label for="editPlayerSelect">Select Player</label>
+          <select id="editPlayerSelect"></select>
+
+          <label for="editPlayerRating">Player Rating</label>
+          <input type="number" id="editPlayerRating" />
+
+          <label for="editPlayerWins">Wins</label>
+          <input type="number" id="editPlayerWins" />
+
+          <label for="editPlayerLosses">Losses</label>
+          <input type="number" id="editPlayerLosses" />
+
+          <label for="editPlayerMatches">Matches</label>
+          <input type="number" id="editPlayerMatches" />
+
+          <button id="savePlayerStatsBtn">Save Player Stats</button>
+          <div id="editPlayerMessage" class="msg"></div>
+          <p class="small">
+            Use carefully: this directly overrides the player's stored stats.
+          </p>
+        </div>
       </div>
     </div>
 
     <p class="small" style="margin-top:15px;">
-      Any user can record new matches. Admins can manage players, matches, and admin list.
+      Any user can record new matches. Admins can manage players, matches, player stats, and admin list.
     </p>
   </div>
 
@@ -377,6 +402,15 @@
     const showCurveBtn = document.getElementById("showCurveBtn");
     const curveMessageDiv = document.getElementById("curveMessage");
     const ratingCurveCanvas = document.getElementById("ratingCurveCanvas");
+
+    // NEW: admin edit stats
+    const editPlayerSelect = document.getElementById("editPlayerSelect");
+    const editPlayerRatingInput = document.getElementById("editPlayerRating");
+    const editPlayerWinsInput = document.getElementById("editPlayerWins");
+    const editPlayerLossesInput = document.getElementById("editPlayerLosses");
+    const editPlayerMatchesInput = document.getElementById("editPlayerMatches");
+    const savePlayerStatsBtn = document.getElementById("savePlayerStatsBtn");
+    const editPlayerMessageDiv = document.getElementById("editPlayerMessage");
 
     let ratingCurveChart = null;
 
@@ -560,6 +594,7 @@
       renderMatchesTable();
       fillAvailablePlayersSelect();
       fillRatingCurveSelect();
+      fillEditPlayerSelect();   // NEW: for admin stat editing
     });
 
     function fillTeamSelects() {
@@ -747,7 +782,7 @@
       const E2 = 1 - E1;
 
       const scoreDiff = Math.abs(s1 - s2);
-      const marginFactor = 1 + scoreDiff / 10;   // same for everyone in this match
+      const marginFactor = 1 + scoreDiff / 10;
 
       const S1 = (winnerTeam === "team1") ? 1 : 0;
       const S2 = (winnerTeam === "team2") ? 1 : 0;
@@ -766,7 +801,7 @@
 
         function baseKForPlayer(p) {
           const matchesPlayed = p.matches ?? (p.wins + p.losses);
-          return matchesPlayed < 20 ? 64 : 32;   // first 20 matches: 64, then 32
+          return matchesPlayed < 20 ? 64 : 32;
         }
 
         // Team 1
@@ -803,7 +838,6 @@
           });
         });
 
-        // Save match
         const matchRef = db.collection("matches").doc();
         batch.set(matchRef, {
           timestamp: firebase.firestore.FieldValue.serverTimestamp(),
@@ -817,7 +851,7 @@
           expected1: E1,
           expected2: E2,
           marginFactor,
-          playerRatings   // contains per-player before/after/Kbase/kEff
+          playerRatings
         });
 
         await batch.commit();
@@ -1083,6 +1117,84 @@
           }
         }
       });
+    });
+
+    // --- Admin: Edit Player Stats (NEW) ---
+    function fillEditPlayerSelect() {
+      editPlayerSelect.innerHTML = "<option value=''>-- Select Player --</option>";
+      players.forEach(p => {
+        const opt = document.createElement("option");
+        opt.value = p.id;
+        opt.textContent = p.name + " (" + p.rating + ")";
+        editPlayerSelect.appendChild(opt);
+      });
+      // Clear fields when list updates
+      editPlayerRatingInput.value = "";
+      editPlayerWinsInput.value = "";
+      editPlayerLossesInput.value = "";
+      editPlayerMatchesInput.value = "";
+      editPlayerMessageDiv.textContent = "";
+      editPlayerMessageDiv.className = "msg";
+    }
+
+    editPlayerSelect.addEventListener("change", () => {
+      editPlayerMessageDiv.textContent = "";
+      editPlayerMessageDiv.className = "msg";
+      const pid = editPlayerSelect.value;
+      if (!pid) {
+        editPlayerRatingInput.value = "";
+        editPlayerWinsInput.value = "";
+        editPlayerLossesInput.value = "";
+        editPlayerMatchesInput.value = "";
+        return;
+      }
+      const p = players.find(x => x.id === pid);
+      if (!p) return;
+      editPlayerRatingInput.value = p.rating ?? 1600;
+      editPlayerWinsInput.value = p.wins ?? 0;
+      editPlayerLossesInput.value = p.losses ?? 0;
+      editPlayerMatchesInput.value = p.matches ?? (p.wins + p.losses);
+    });
+
+    savePlayerStatsBtn.addEventListener("click", async () => {
+      editPlayerMessageDiv.textContent = "";
+      editPlayerMessageDiv.className = "msg";
+      if (!isAdmin) {
+        editPlayerMessageDiv.textContent = "Only admins can edit player stats.";
+        editPlayerMessageDiv.classList.add("error");
+        return;
+      }
+      const pid = editPlayerSelect.value;
+      if (!pid) {
+        editPlayerMessageDiv.textContent = "Please select a player.";
+        editPlayerMessageDiv.classList.add("error");
+        return;
+      }
+
+      const rating = parseInt(editPlayerRatingInput.value, 10);
+      const wins = parseInt(editPlayerWinsInput.value, 10);
+      const losses = parseInt(editPlayerLossesInput.value, 10);
+      const matches = parseInt(editPlayerMatchesInput.value, 10);
+
+      if ([rating, wins, losses, matches].some(v => isNaN(v) || v < 0)) {
+        editPlayerMessageDiv.textContent = "All values must be non-negative numbers.";
+        editPlayerMessageDiv.classList.add("error");
+        return;
+      }
+
+      try {
+        await db.collection("players").doc(pid).update({
+          rating,
+          wins,
+          losses,
+          matches
+        });
+        editPlayerMessageDiv.textContent = "Player stats updated successfully.";
+        editPlayerMessageDiv.classList.add("success");
+      } catch (err) {
+        editPlayerMessageDiv.textContent = "Error updating stats: " + err.message;
+        editPlayerMessageDiv.classList.add("error");
+      }
     });
   </script>
 </body>
