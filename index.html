@@ -2,117 +2,106 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Pickleball Elo Ratings</title>
+  <title>Pickleball 2v2 Elo Ratings</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
-      font-family: Arial, Helvetica, sans-serif;
+      font-family: Arial, sans-serif;
       background: #f4f4f4;
       margin: 0;
       padding: 0;
     }
-
     .container {
-      max-width: 900px;
-      margin: 30px auto;
-      background: #ffffff;
-      padding: 20px 25px 40px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+      max-width: 1100px;
+      margin: 20px auto;
+      background: #fff;
+      padding: 20px 25px 30px;
       border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
     }
-
     h1, h2 {
-      text-align: center;
       margin-top: 0;
+      text-align: center;
     }
-
     .flex {
       display: flex;
       flex-wrap: wrap;
       gap: 20px;
-      margin-top: 20px;
+      margin-top: 10px;
     }
-
     .card {
-      flex: 1 1 260px;
+      flex: 1 1 300px;
       background: #fafafa;
-      border-radius: 8px;
       padding: 15px 20px;
+      border-radius: 8px;
       box-shadow: 0 1px 4px rgba(0,0,0,0.08);
     }
-
     label {
       display: block;
-      margin-bottom: 6px;
-      font-weight: bold;
+      margin-bottom: 4px;
       font-size: 0.9rem;
+      font-weight: bold;
     }
-
-    select, input, button {
+    input, select, button {
       width: 100%;
-      padding: 8px 10px;
-      margin-bottom: 12px;
+      padding: 7px 9px;
+      margin-bottom: 10px;
       border-radius: 4px;
       border: 1px solid #ccc;
-      font-size: 0.95rem;
+      font-size: 0.9rem;
       box-sizing: border-box;
     }
-
     button {
       cursor: pointer;
-      font-weight: bold;
       border: none;
+      font-weight: bold;
       background: #007bff;
-      color: white;
+      color: #fff;
       transition: background 0.2s ease;
     }
-
     button:hover {
       background: #0056b3;
     }
-
+    button[disabled] {
+      background: #999;
+      cursor: not-allowed;
+    }
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 20px;
-      font-size: 0.95rem;
+      margin-top: 15px;
+      font-size: 0.9rem;
     }
-
     th, td {
-      padding: 8px 10px;
+      padding: 7px 8px;
       border-bottom: 1px solid #ddd;
       text-align: center;
     }
-
     th {
       background: #f0f0f0;
     }
-
     tr:nth-child(even) {
       background: #fbfbfb;
     }
-
     .msg {
-      margin-top: 10px;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
+      margin-top: 5px;
     }
-
     .msg.error {
       color: #b00020;
     }
-
     .msg.success {
       color: #0a7b16;
     }
-
     .small {
       font-size: 0.8rem;
       color: #666;
-      margin-top: 10px;
-      text-align: center;
+      margin-top: 5px;
     }
-
-    @media (max-width: 600px) {
+    .admin-only {
+      display: none; /* only visible when admin is logged in */
+    }
+    @media (max-width: 700px) {
       th, td {
         font-size: 0.8rem;
       }
@@ -121,52 +110,102 @@
 </head>
 <body>
   <div class="container">
-    <h1>Pickleball Elo Ratings</h1>
+    <h1>Pickleball 2 vs 2 Elo Ratings</h1>
     <p style="text-align:center; margin-bottom: 5px;">
-      Track Elo ratings for your 10 players.
+      Unlimited players, 2v2 matches, score-weighted Elo rating, admin-controlled updates.
     </p>
-    <p class="small">
-      Enter match results below. Elo updates instantly in the rating table.
-    </p>
+
+    <!-- ADMIN LOGIN -->
+    <div class="card" style="max-width:400px; margin: 0 auto 15px;">
+      <h2 style="font-size:1.1rem; text-align:left;">Admin Login</h2>
+      <label for="adminEmail">Email</label>
+      <input type="email" id="adminEmail" placeholder="admin@example.com" />
+      <label for="adminPassword">Password</label>
+      <input type="password" id="adminPassword" placeholder="Password" />
+      <button id="loginBtn">Login as Admin</button>
+      <button id="logoutBtn" style="margin-top:5px; background:#dc3545;">Logout</button>
+      <div id="authMessage" class="msg"></div>
+      <p class="small" id="adminStatus">Not logged in.</p>
+    </div>
 
     <div class="flex">
-      <div class="card">
-        <h2 style="font-size:1.1rem; text-align:left;">Record a Match</h2>
-        <label for="winnerSelect">Winner</label>
-        <select id="winnerSelect"></select>
-
-        <label for="loserSelect">Loser</label>
-        <select id="loserSelect"></select>
-
-        <label for="kFactor">K-Factor (rating sensitivity)</label>
-        <input type="number" id="kFactor" value="32" min="1" max="100" />
-
-        <button id="recordMatchBtn">Record Match</button>
-
-        <div id="message" class="msg"></div>
+      <!-- PLAYER MANAGEMENT (ADMIN ONLY) -->
+      <div class="card admin-only" id="adminPlayerCard">
+        <h2 style="font-size:1.1rem; text-align:left;">Add Player</h2>
+        <label for="newPlayerName">Player Name</label>
+        <input type="text" id="newPlayerName" placeholder="e.g., John Doe" />
+        <label for="initialRating">Initial Rating (default 1500)</label>
+        <input type="number" id="initialRating" value="1500" />
+        <button id="addPlayerBtn">Add Player</button>
+        <div id="playerMessage" class="msg"></div>
+        <p class="small">
+          No reset button. To remove data, use the Firestore console.
+        </p>
       </div>
 
-      <div class="card">
-        <h2 style="font-size:1.1rem; text-align:left;">Add / Reset Players</h2>
-        <label for="playerNames">
-          Player Names (one per line, max 10)
-        </label>
-        <textarea id="playerNames" rows="8" style="width:100%;resize:vertical;"></textarea>
-        <button id="resetPlayersBtn">Reset Players</button>
+      <!-- ADMIN MANAGEMENT (ADMIN ONLY) -->
+      <div class="card admin-only" id="adminManagementCard">
+        <h2 style="font-size:1.1rem; text-align:left;">Admin Management</h2>
+        <label for="newAdminEmail">Add New Admin by Email</label>
+        <input type="email" id="newAdminEmail" placeholder="user@example.com" />
+        <button id="addAdminBtn">Add Admin</button>
+        <div id="adminManageMessage" class="msg"></div>
         <p class="small">
-          Default: 10 players named Player 1–Player 10 at 1500 rating.
+          This email must be a registered Firebase Auth user (create it in console or via sign up).
+        </p>
+      </div>
+
+      <!-- MATCH PREDICTION & RECORDING -->
+      <div class="card" id="matchCard">
+        <h2 style="font-size:1.1rem; text-align:left;">2 vs 2 Match</h2>
+
+        <label>Team A - Player 1</label>
+        <select id="teamA1"></select>
+
+        <label>Team A - Player 2</label>
+        <select id="teamA2"></select>
+
+        <label>Team B - Player 1</label>
+        <select id="teamB1"></select>
+
+        <label>Team B - Player 2</label>
+        <select id="teamB2"></select>
+
+        <label for="scoreA">Final Score (Team A)</label>
+        <input type="number" id="scoreA" placeholder="e.g. 11" />
+
+        <label for="scoreB">Final Score (Team B)</label>
+        <input type="number" id="scoreB" placeholder="e.g. 9" />
+
+        <label for="kFactor">Base K-Factor (rating sensitivity)</label>
+        <input type="number" id="kFactor" value="32" min="1" max="100" />
+
+        <button id="calcProbBtn">Calculate Win Probability</button>
+        <div id="probabilityDisplay" class="msg"></div>
+
+        <button id="recordAWinBtn" class="admin-only" style="margin-top:8px;">
+          Record Result: Team A Won
+        </button>
+        <button id="recordBWinBtn" class="admin-only" style="margin-top:5px; background:#28a745;">
+          Record Result: Team B Won
+        </button>
+
+        <div id="matchMessage" class="msg"></div>
+        <p class="small">
+          Elo change is scaled by score difference. Example: 11–10 → small change, 11–1 → bigger change.
         </p>
       </div>
     </div>
 
+    <!-- LEADERBOARD -->
     <h2>Leaderboard</h2>
-    <table id="playersTable">
+    <table id="leaderboardTable">
       <thead>
         <tr>
           <th>Rank</th>
           <th>Name</th>
           <th>Rating</th>
-          <th>Wins</th>
+          <th>wins</th>
           <th>Losses</th>
           <th>Matches</th>
         </tr>
@@ -174,115 +213,247 @@
       <tbody></tbody>
     </table>
 
-    <p class="small">
-      Ratings are stored in your browser (localStorage). Clearing browser data will reset them.
+    <!-- RECENT MATCHES -->
+    <h2 style="margin-top:25px;">Recent Matches</h2>
+    <table id="matchesTable">
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Team A</th>
+          <th>Team B</th>
+          <th>Winner</th>
+          <th>Score</th>
+          <th>Prob A</th>
+          <th>Prob B</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <p class="small" style="margin-top:15px;">
+      All data is stored in Firestore. Only admins can modify data; normal users have read-only access.
     </p>
   </div>
 
+  <!-- Firebase SDKs (compat) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+
   <script>
-    // -----------------------------
-    // Data structure and constants
-    // -----------------------------
+    // TODO 1: Replace with your own Firebase config from Project Settings.
+    const firebaseConfig = {
+      apiKey: "AIzaSyCxH9Zda7Yx31CN3jimkUZkuDEg4ecaqQ8",
+      authDomain: "pickleball-elo.firebaseapp.com",
+      projectId: "pickleball-elo",
+      storageBucket: "pickleball-elo.firebasestorage.app",
+      messagingSenderId: "115251632176",
+      appId: "1:115251632176:web:20c5cd2a72ad37c44bf5f5"
+    };
 
-    const STORAGE_KEY = "pickleballEloPlayers_v1";
+    // TODO 2: Set this to your master admin email (same as in Firestore rules).
+    const MASTER_ADMIN_EMAIL = "swaksharsen@gmail.com";
 
-    let players = [];
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
 
-    // Default 10 players at 1500
-    function defaultPlayers() {
-      const arr = [];
-      for (let i = 1; i <= 10; i++) {
-        arr.push({
-          id: i,
-          name: "Player " + i,
-          rating: 1500,
+    // ----- DOM references -----
+    const loginBtn = document.getElementById("loginBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const adminEmailInput = document.getElementById("adminEmail");
+    const adminPasswordInput = document.getElementById("adminPassword");
+    const authMessageDiv = document.getElementById("authMessage");
+    const adminStatusP = document.getElementById("adminStatus");
+
+    const addPlayerBtn = document.getElementById("addPlayerBtn");
+    const newPlayerNameInput = document.getElementById("newPlayerName");
+    const initialRatingInput = document.getElementById("initialRating");
+    const playerMessageDiv = document.getElementById("playerMessage");
+
+    const newAdminEmailInput = document.getElementById("newAdminEmail");
+    const addAdminBtn = document.getElementById("addAdminBtn");
+    const adminManageMessageDiv = document.getElementById("adminManageMessage");
+
+    const teamA1Select = document.getElementById("teamA1");
+    const teamA2Select = document.getElementById("teamA2");
+    const teamB1Select = document.getElementById("teamB1");
+    const teamB2Select = document.getElementById("teamB2");
+    const scoreAInput = document.getElementById("scoreA");
+    const scoreBInput = document.getElementById("scoreB");
+    const kFactorInput = document.getElementById("kFactor");
+    const calcProbBtn = document.getElementById("calcProbBtn");
+    const probabilityDisplay = document.getElementById("probabilityDisplay");
+    const recordAWinBtn = document.getElementById("recordAWinBtn");
+    const recordBWinBtn = document.getElementById("recordBWinBtn");
+    const matchMessageDiv = document.getElementById("matchMessage");
+
+    const leaderboardBody = document.querySelector("#leaderboardTable tbody");
+    const matchesBody = document.querySelector("#matchesTable tbody");
+
+    let currentUser = null;
+    let isAdmin = false;
+    let players = []; // array of {id, name, rating, wins, losses, matches}
+
+    // ----- Utility functions -----
+
+    function expectedScore(rA, rB) {
+      return 1 / (1 + Math.pow(10, (rB - rA) / 400));
+    }
+
+    function teamRating(playerIds) {
+      const ratings = playerIds
+        .map(id => players.find(p => p.id === id))
+        .filter(p => !!p)
+        .map(p => p.rating);
+      if (ratings.length === 0) return 1500;
+      const sum = ratings.reduce((a, b) => a + b, 0);
+      return sum / ratings.length;
+    }
+
+    function formatPercent(x) {
+      return (x * 100).toFixed(1) + "%";
+    }
+
+    function timeString(timestamp) {
+      const d = timestamp && timestamp.toDate ? timestamp.toDate() : new Date();
+      return d.toLocaleString();
+    }
+
+    function setAdminUI(visible) {
+      document.querySelectorAll(".admin-only").forEach(el => {
+        el.style.display = visible ? "block" : "none";
+      });
+    }
+
+    // ----- Authentication -----
+
+    loginBtn.addEventListener("click", () => {
+      const email = adminEmailInput.value.trim();
+      const pass = adminPasswordInput.value.trim();
+      authMessageDiv.textContent = "";
+      authMessageDiv.className = "msg";
+
+      if (!email || !pass) {
+        authMessageDiv.textContent = "Please enter email and password.";
+        authMessageDiv.classList.add("error");
+        return;
+      }
+
+      auth.signInWithEmailAndPassword(email, pass)
+        .then(() => {
+          authMessageDiv.textContent = "Logged in successfully.";
+          authMessageDiv.classList.add("success");
+        })
+        .catch(err => {
+          authMessageDiv.textContent = "Login failed: " + err.message;
+          authMessageDiv.classList.add("error");
+        });
+    });
+
+    logoutBtn.addEventListener("click", () => {
+      auth.signOut();
+    });
+
+    async function updateAdminStatus(user) {
+      if (!user) {
+        currentUser = null;
+        isAdmin = false;
+        adminStatusP.textContent = "Not logged in.";
+        setAdminUI(false);
+        return;
+      }
+
+      currentUser = user;
+
+      // Master admin is always admin
+      if (user.email === MASTER_ADMIN_EMAIL) {
+        isAdmin = true;
+        adminStatusP.textContent = "Logged in as master admin: " + user.email;
+        setAdminUI(true);
+        return;
+      }
+
+      // Otherwise check admins collection for this email
+      try {
+        const doc = await db.collection("admins").doc(user.email).get();
+        isAdmin = doc.exists;
+      } catch (e) {
+        console.error("Error checking admin list:", e);
+        isAdmin = false;
+      }
+
+      if (isAdmin) {
+        adminStatusP.textContent = "Logged in as admin: " + user.email;
+      } else {
+        adminStatusP.textContent = "Logged in (not admin): " + user.email;
+      }
+      setAdminUI(isAdmin);
+    }
+
+    auth.onAuthStateChanged(user => {
+      authMessageDiv.textContent = "";
+      authMessageDiv.className = "msg";
+      updateAdminStatus(user);
+    });
+
+    // ----- Player management -----
+
+    addPlayerBtn.addEventListener("click", async () => {
+      playerMessageDiv.textContent = "";
+      playerMessageDiv.className = "msg";
+
+      if (!isAdmin) {
+        playerMessageDiv.textContent = "Only admins can add players.";
+        playerMessageDiv.classList.add("error");
+        return;
+      }
+
+      const name = newPlayerNameInput.value.trim();
+      const rating = parseInt(initialRatingInput.value, 10);
+
+      if (!name) {
+        playerMessageDiv.textContent = "Player name is required.";
+        playerMessageDiv.classList.add("error");
+        return;
+      }
+
+      const validRating = isNaN(rating) ? 1500 : rating;
+
+      try {
+        await db.collection("players").add({
+          name,
+          rating: validRating,
           wins: 0,
           losses: 0,
           matches: 0
         });
+        newPlayerNameInput.value = "";
+        playerMessageDiv.textContent = "Player added.";
+        playerMessageDiv.classList.add("success");
+      } catch (err) {
+        playerMessageDiv.textContent = "Error adding player: " + err.message;
+        playerMessageDiv.classList.add("error");
       }
-      return arr;
-    }
+    });
 
-    // -----------------------------
-    // Local storage helpers
-    // -----------------------------
+    // Real-time listener for players (sorted by rating)
+    db.collection("players")
+      .orderBy("rating", "desc")
+      .onSnapshot(snapshot => {
+        players = [];
+        snapshot.forEach(doc => {
+          players.push({ id: doc.id, ...doc.data() });
+        });
+        renderLeaderboard();
+        fillPlayerSelects();
+      });
 
-    function loadPlayersFromStorage() {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) {
-        players = defaultPlayers();
-        savePlayersToStorage();
-      } else {
-        try {
-          players = JSON.parse(raw);
-        } catch (e) {
-          console.error("Error parsing saved data, resetting to default.", e);
-          players = defaultPlayers();
-          savePlayersToStorage();
-        }
-      }
-    }
-
-    function savePlayersToStorage() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(players));
-    }
-
-    // -----------------------------
-    // Elo calculation
-    // -----------------------------
-
-    function expectedScore(ratingA, ratingB) {
-      return 1 / (1 + Math.pow(10, (ratingB - ratingA) / 400));
-    }
-
-    function updateElo(winnerId, loserId, kFactor) {
-      const winner = players.find(p => p.id === winnerId);
-      const loser = players.find(p => p.id === loserId);
-
-      if (!winner || !loser) return;
-
-      const Ra = winner.rating;
-      const Rb = loser.rating;
-
-      const Ea = expectedScore(Ra, Rb);
-      const Eb = 1 - Ea;
-
-      const Sa = 1; // winner
-      const Sb = 0; // loser
-
-      winner.rating = Math.round(Ra + kFactor * (Sa - Ea));
-      loser.rating = Math.round(Rb + kFactor * (Sb - Eb));
-
-      // Update basic stats
-      winner.wins += 1;
-      winner.matches += 1;
-      loser.losses += 1;
-      loser.matches += 1;
-    }
-
-    // -----------------------------
-    // UI rendering
-    // -----------------------------
-
-    const playersTableBody = document.querySelector("#playersTable tbody");
-    const winnerSelect = document.getElementById("winnerSelect");
-    const loserSelect = document.getElementById("loserSelect");
-    const messageDiv = document.getElementById("message");
-    const kFactorInput = document.getElementById("kFactor");
-    const playerNamesTextarea = document.getElementById("playerNames");
-    const recordMatchBtn = document.getElementById("recordMatchBtn");
-    const resetPlayersBtn = document.getElementById("resetPlayersBtn");
-
-    function renderPlayers() {
-      // Sort players by rating, descending
-      const sorted = [...players].sort((a, b) => b.rating - a.rating);
-
-      // Render table
-      playersTableBody.innerHTML = "";
-      sorted.forEach((p, index) => {
+    function renderLeaderboard() {
+      leaderboardBody.innerHTML = "";
+      players.forEach((p, index) => {
         const tr = document.createElement("tr");
-
         tr.innerHTML = `
           <td>${index + 1}</td>
           <td>${p.name}</td>
@@ -291,111 +462,304 @@
           <td>${p.losses}</td>
           <td>${p.matches}</td>
         `;
-        playersTableBody.appendChild(tr);
+        leaderboardBody.appendChild(tr);
       });
-
-      // Render selects
-      renderPlayerSelects();
     }
 
-    function renderPlayerSelects() {
-      // Keep the same ordering as players array for selects
-      winnerSelect.innerHTML = "";
-      loserSelect.innerHTML = "";
-
-      players.forEach(p => {
-        const optionW = document.createElement("option");
-        optionW.value = p.id;
-        optionW.textContent = p.name;
-        winnerSelect.appendChild(optionW);
-
-        const optionL = document.createElement("option");
-        optionL.value = p.id;
-        optionL.textContent = p.name;
-        loserSelect.appendChild(optionL);
+    function fillPlayerSelects() {
+      const selects = [teamA1Select, teamA2Select, teamB1Select, teamB2Select];
+      selects.forEach(sel => {
+        sel.innerHTML = "<option value=''>-- Select Player --</option>";
+        players.forEach(p => {
+          const opt = document.createElement("option");
+          opt.value = p.id;
+          opt.textContent = p.name + " (" + p.rating + ")";
+          sel.appendChild(opt);
+        });
       });
+    }
 
-      // Set default winner = first, loser = second if possible
-      if (players.length >= 2) {
-        winnerSelect.value = players[0].id;
-        loserSelect.value = players[1].id;
+    // ----- Admin management -----
+
+    addAdminBtn.addEventListener("click", async () => {
+      adminManageMessageDiv.textContent = "";
+      adminManageMessageDiv.className = "msg";
+
+      if (!isAdmin) {
+        adminManageMessageDiv.textContent = "Only admins can add new admins.";
+        adminManageMessageDiv.classList.add("error");
+        return;
+      }
+
+      const email = newAdminEmailInput.value.trim();
+      if (!email) {
+        adminManageMessageDiv.textContent = "Please enter an email.";
+        adminManageMessageDiv.classList.add("error");
+        return;
+      }
+
+      try {
+        await db.collection("admins").doc(email).set({
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        adminManageMessageDiv.textContent = "Admin added: " + email;
+        adminManageMessageDiv.classList.add("success");
+        newAdminEmailInput.value = "";
+      } catch (err) {
+        adminManageMessageDiv.textContent = "Error adding admin: " + err.message;
+        adminManageMessageDiv.classList.add("error");
+      }
+    });
+
+    // ----- Match prediction & recording -----
+
+    function getSelectedTeams() {
+      const a1 = teamA1Select.value;
+      const a2 = teamA2Select.value;
+      const b1 = teamB1Select.value;
+      const b2 = teamB2Select.value;
+      return {
+        teamA: [a1, a2].filter(x => x),
+        teamB: [b1, b2].filter(x => x)
+      };
+    }
+
+    function validateTeams(teamA, teamB) {
+      if (teamA.length !== 2 || teamB.length !== 2) {
+        return "Each team must have exactly 2 players.";
+      }
+      const all = [...teamA, ...teamB];
+      const unique = new Set(all);
+      if (unique.size !== all.length) {
+        return "A player cannot be on both teams.";
+      }
+      if (players.length === 0) {
+        return "No players in the database.";
+      }
+      return null;
+    }
+
+    function readScores() {
+      const scoreA = parseInt(scoreAInput.value, 10);
+      const scoreB = parseInt(scoreBInput.value, 10);
+      if (isNaN(scoreA) || isNaN(scoreB)) {
+        return { error: "Please enter valid scores for both teams." };
+      }
+      if (scoreA === scoreB) {
+        return { error: "Scores cannot be equal; there must be a winner." };
+      }
+      if (scoreA < 0 || scoreB < 0) {
+        return { error: "Scores cannot be negative." };
+      }
+      return { scoreA, scoreB };
+    }
+
+    calcProbBtn.addEventListener("click", () => {
+      probabilityDisplay.textContent = "";
+      probabilityDisplay.className = "msg";
+
+      const { teamA, teamB } = getSelectedTeams();
+      const err = validateTeams(teamA, teamB);
+      if (err) {
+        probabilityDisplay.textContent = err;
+        probabilityDisplay.classList.add("error");
+        return;
+      }
+
+      const rA = teamRating(teamA);
+      const rB = teamRating(teamB);
+      const Ea = expectedScore(rA, rB);
+      const Eb = 1 - Ea;
+
+      probabilityDisplay.innerHTML =
+        "Team A rating: " + rA.toFixed(1) + "<br>" +
+        "Team B rating: " + rB.toFixed(1) + "<br>" +
+        "Win probability — Team A: <b>" + formatPercent(Ea) +
+        "</b>, Team B: <b>" + formatPercent(Eb) + "</b>.";
+      probabilityDisplay.classList.add("success");
+    });
+
+    async function recordMatch(winnerTeamLabel) {
+      matchMessageDiv.textContent = "";
+      matchMessageDiv.className = "msg";
+
+      if (!isAdmin) {
+        matchMessageDiv.textContent = "Only admins can record match results.";
+        matchMessageDiv.classList.add("error");
+        return;
+      }
+
+      const { teamA, teamB } = getSelectedTeams();
+      const err = validateTeams(teamA, teamB);
+      if (err) {
+        matchMessageDiv.textContent = err;
+        matchMessageDiv.classList.add("error");
+        return;
+      }
+
+      const scoreResult = readScores();
+      if (scoreResult.error) {
+        matchMessageDiv.textContent = scoreResult.error;
+        matchMessageDiv.classList.add("error");
+        return;
+      }
+      const { scoreA, scoreB } = scoreResult;
+
+      // Check that scores are consistent with declared winner
+      if (winnerTeamLabel === "A" && scoreA <= scoreB) {
+        matchMessageDiv.textContent = "Team A is marked as winner but has not more points.";
+        matchMessageDiv.classList.add("error");
+        return;
+      }
+      if (winnerTeamLabel === "B" && scoreB <= scoreA) {
+        matchMessageDiv.textContent = "Team B is marked as winner but has not more points.";
+        matchMessageDiv.classList.add("error");
+        return;
+      }
+
+      const baseK = parseInt(kFactorInput.value, 10);
+      const K = isNaN(baseK) || baseK <= 0 ? 32 : baseK;
+
+      const rA = teamRating(teamA);
+      const rB = teamRating(teamB);
+      const Ea = expectedScore(rA, rB);
+      const Eb = 1 - Ea;
+
+      // ---- Score-difference weighting ----
+      // scoreDiff = abs(scoreA - scoreB)
+      // marginFactor = 1 + scoreDiff / 10
+      // effective K = K * marginFactor
+      const scoreDiff = Math.abs(scoreA - scoreB);
+      const marginFactor = 1 + (scoreDiff / 10);
+      const kEff = K * marginFactor;
+
+      const teamAWon = (winnerTeamLabel === "A");
+      const SA = teamAWon ? 1 : 0;
+      const SB = teamAWon ? 0 : 1;
+
+      const playerIds = [...teamA, ...teamB];
+
+      try {
+        // Load fresh player data
+        const docs = await Promise.all(
+          playerIds.map(id => db.collection("players").doc(id).get())
+        );
+        const freshPlayers = {};
+        docs.forEach(doc => {
+          freshPlayers[doc.id] = { id: doc.id, ...doc.data() };
+        });
+
+        const batch = db.batch();
+        const updates = [];
+
+        // Update Team A players
+        teamA.forEach(id => {
+          const p = freshPlayers[id];
+          if (!p) return;
+          const newRating = Math.round(p.rating + kEff * (SA - Ea));
+          updates.push({
+            id: p.id,
+            data: {
+              rating: newRating,
+              wins: p.wins + (teamAWon ? 1 : 0),
+              losses: p.losses + (teamAWon ? 0 : 1),
+              matches: p.matches + 1
+            }
+          });
+        });
+
+        // Update Team B players
+        teamB.forEach(id => {
+          const p = freshPlayers[id];
+          if (!p) return;
+          const newRating = Math.round(p.rating + kEff * (SB - Eb));
+          updates.push({
+            id: p.id,
+            data: {
+              rating: newRating,
+              wins: p.wins + (teamAWon ? 0 : 1),
+              losses: p.losses + (teamAWon ? 1 : 0),
+              matches: p.matches + 1
+            }
+          });
+        });
+
+        // Apply updates
+        updates.forEach(u => {
+          const ref = db.collection("players").doc(u.id);
+          batch.update(ref, u.data);
+        });
+
+        // Save match record
+        const matchRef = db.collection("matches").doc();
+        const matchData = {
+          timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+          teamA,
+          teamB,
+          winner: teamAWon ? "A" : "B",
+          teamARatingBefore: rA,
+          teamBRatingBefore: rB,
+          probA: Ea,
+          probB: Eb,
+          scoreA,
+          scoreB,
+          marginFactor,
+          kEffective: kEff
+        };
+        batch.set(matchRef, matchData);
+
+        await batch.commit();
+
+        matchMessageDiv.textContent = "Match recorded successfully.";
+        matchMessageDiv.classList.add("success");
+      } catch (err) {
+        console.error(err);
+        matchMessageDiv.textContent = "Error recording match: " + err.message;
+        matchMessageDiv.classList.add("error");
       }
     }
 
-    // -----------------------------
-    // Event handlers
-    // -----------------------------
+    recordAWinBtn.addEventListener("click", () => recordMatch("A"));
+    recordBWinBtn.addEventListener("click", () => recordMatch("B"));
 
-    recordMatchBtn.addEventListener("click", () => {
-      const winnerId = parseInt(winnerSelect.value, 10);
-      const loserId = parseInt(loserSelect.value, 10);
-      const kFactor = parseInt(kFactorInput.value, 10);
+    // ----- Recent matches listener -----
 
-      messageDiv.textContent = "";
-      messageDiv.className = "msg";
+    db.collection("matches")
+      .orderBy("timestamp", "desc")
+      .limit(30)
+      .onSnapshot(snapshot => {
+        matchesBody.innerHTML = "";
+        snapshot.forEach(doc => {
+          const m = doc.data();
+          const row = document.createElement("tr");
 
-      if (isNaN(winnerId) || isNaN(loserId)) {
-        messageDiv.textContent = "Please select both winner and loser.";
-        messageDiv.classList.add("error");
-        return;
-      }
+          const teamAString = (m.teamA || [])
+            .map(id => players.find(p => p.id === id)?.name || id)
+            .join(" & ");
+          const teamBString = (m.teamB || [])
+            .map(id => players.find(p => p.id === id)?.name || id)
+            .join(" & ");
 
-      if (winnerId === loserId) {
-        messageDiv.textContent = "Winner and loser cannot be the same player.";
-        messageDiv.classList.add("error");
-        return;
-      }
+          const winnerLabel = m.winner === "A" ? "Team A" : "Team B";
+          const probA = (m.probA != null) ? formatPercent(m.probA) : "-";
+          const probB = (m.probB != null) ? formatPercent(m.probB) : "-";
+          const scoreStr = (m.scoreA != null && m.scoreB != null)
+            ? `${m.scoreA} - ${m.scoreB}`
+            : "-";
 
-      if (isNaN(kFactor) || kFactor <= 0) {
-        messageDiv.textContent = "Please enter a valid K-factor.";
-        messageDiv.classList.add("error");
-        return;
-      }
-
-      updateElo(winnerId, loserId, kFactor);
-      savePlayersToStorage();
-      renderPlayers();
-
-      const winnerName = players.find(p => p.id === winnerId)?.name || "Winner";
-      const loserName = players.find(p => p.id === loserId)?.name || "Loser";
-      messageDiv.textContent = `Match recorded: ${winnerName} defeated ${loserName}.`;
-      messageDiv.classList.add("success");
-    });
-
-    resetPlayersBtn.addEventListener("click", () => {
-      const rawText = playerNamesTextarea.value.trim();
-      const lines = rawText.split(/\r?\n/).filter(line => line.trim() !== "");
-
-      if (lines.length === 0) {
-        // If no names given, revert to default
-        players = defaultPlayers();
-      } else {
-        const maxPlayers = 10;
-        const limited = lines.slice(0, maxPlayers);
-
-        players = limited.map((name, idx) => ({
-          id: idx + 1,
-          name: name.trim(),
-          rating: 1500,
-          wins: 0,
-          losses: 0,
-          matches: 0
-        }));
-      }
-
-      savePlayersToStorage();
-      renderPlayers();
-
-      messageDiv.textContent = "Players reset successfully.";
-      messageDiv.className = "msg success";
-    });
-
-    // -----------------------------
-    // Initial load
-    // -----------------------------
-
-    loadPlayersFromStorage();
-    renderPlayers();
+          row.innerHTML = `
+            <td>${m.timestamp ? timeString(m.timestamp) : ""}</td>
+            <td>${teamAString}</td>
+            <td>${teamBString}</td>
+            <td>${winnerLabel}</td>
+            <td>${scoreStr}</td>
+            <td>${probA}</td>
+            <td>${probB}</td>
+          `;
+          matchesBody.appendChild(row);
+        });
+      });
   </script>
 </body>
 </html>
+
