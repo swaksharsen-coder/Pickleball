@@ -23,6 +23,31 @@
       margin-top: 0;
       text-align: center;
     }
+    .tabs {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .tab-button {
+      padding: 8px 14px;
+      border-radius: 20px;
+      border: 1px solid #007bff;
+      background: #fff;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    .tab-button.active {
+      background: #007bff;
+      color: #fff;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
     .flex {
       display: flex;
       flex-wrap: wrap;
@@ -42,7 +67,7 @@
       font-size: 0.9rem;
       font-weight: bold;
     }
-    input, select, button {
+    input, select, button, textarea {
       width: 100%;
       padding: 7px 9px;
       margin-bottom: 10px;
@@ -99,7 +124,23 @@
       margin-top: 5px;
     }
     .admin-only {
-      display: none; /* only visible when admin is logged in */
+      display: none; /* shown when admin is logged in */
+    }
+    .player-list {
+      list-style: none;
+      padding-left: 0;
+    }
+    .player-list li {
+      padding: 4px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .delete-btn {
+      width: auto;
+      padding: 3px 8px;
+      font-size: 0.75rem;
+      background: #dc3545;
     }
     @media (max-width: 700px) {
       th, td {
@@ -111,124 +152,185 @@
 <body>
   <div class="container">
     <h1>Pickleball 2 vs 2 Elo Ratings</h1>
-    <p style="text-align:center; margin-bottom: 5px;">
-      Unlimited players, 2v2 matches, score-weighted Elo rating, admin-controlled updates.
-    </p>
 
-    <!-- ADMIN LOGIN -->
-    <div class="card" style="max-width:400px; margin: 0 auto 15px;">
-      <h2 style="font-size:1.1rem; text-align:left;">Admin Login</h2>
-      <label for="adminEmail">Email</label>
-      <input type="email" id="adminEmail" placeholder="admin@example.com" />
-      <label for="adminPassword">Password</label>
-      <input type="password" id="adminPassword" placeholder="Password" />
-      <button id="loginBtn">Login as Admin</button>
-      <button id="logoutBtn" style="margin-top:5px; background:#dc3545;">Logout</button>
-      <div id="authMessage" class="msg"></div>
-      <p class="small" id="adminStatus">Not logged in.</p>
+    <!-- NAV TABS -->
+    <div class="tabs">
+      <button class="tab-button active" data-tab="matches">Matches</button>
+      <button class="tab-button" data-tab="players">Players</button>
+      <button class="tab-button" data-tab="stats">Stats</button>
+      <button class="tab-button" data-tab="admin">Admin</button>
     </div>
 
-    <div class="flex">
-      <!-- PLAYER MANAGEMENT (ADMIN ONLY) -->
-      <div class="card admin-only" id="adminPlayerCard">
-        <h2 style="font-size:1.1rem; text-align:left;">Add Player</h2>
-        <label for="newPlayerName">Player Name</label>
-        <input type="text" id="newPlayerName" placeholder="e.g., John Doe" />
-        <label for="initialRating">Initial Rating (default 1500)</label>
-        <input type="number" id="initialRating" value="1500" />
-        <button id="addPlayerBtn">Add Player</button>
-        <div id="playerMessage" class="msg"></div>
-        <p class="small">
-          No reset button. To remove data, use the Firestore console.
-        </p>
+    <!-- TAB: MATCHES -->
+    <div id="tab-matches" class="tab-content active">
+      <div class="flex">
+        <div class="card">
+          <h2 style="font-size:1.1rem; text-align:left;">Record 2 vs 2 Match</h2>
+
+          <label>Team A - Player 1</label>
+          <select id="teamA1"></select>
+
+          <label>Team A - Player 2</label>
+          <select id="teamA2"></select>
+
+          <label>Team B - Player 1</label>
+          <select id="teamB1"></select>
+
+          <label>Team B - Player 2</label>
+          <select id="teamB2"></select>
+
+          <label for="scoreA">Final Score (Team A)</label>
+          <input type="number" id="scoreA" placeholder="e.g. 11" />
+
+          <label for="scoreB">Final Score (Team B)</label>
+          <input type="number" id="scoreB" placeholder="e.g. 9" />
+
+          <label for="kFactor">Base K-Factor (rating sensitivity)</label>
+          <input type="number" id="kFactor" value="32" min="1" max="100" />
+
+          <button id="calcProbBtn">Calculate Win Probability</button>
+          <div id="probabilityDisplay" class="msg"></div>
+
+          <!-- Single button; winner inferred from scores -->
+          <button id="recordMatchBtn" class="admin-only" style="margin-top:8px;">
+            Record Match Result (Auto-Detect Winner)
+          </button>
+          <div id="matchMessage" class="msg"></div>
+
+          <p class="small">
+            Elo change is scaled by score difference. Example: 11–10 → small change, 11–1 → larger change.
+          </p>
+        </div>
+
+        <div class="card">
+          <h2 style="font-size:1.1rem; text-align:left;">Leaderboard</h2>
+          <table id="leaderboardTable">
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Name</th>
+                <th>Rating</th>
+                <th>Wins</th>
+                <th>Losses</th>
+                <th>Matches</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
       </div>
 
-      <!-- ADMIN MANAGEMENT (ADMIN ONLY) -->
-      <div class="card admin-only" id="adminManagementCard">
-        <h2 style="font-size:1.1rem; text-align:left;">Admin Management</h2>
-        <label for="newAdminEmail">Add New Admin by Email</label>
-        <input type="email" id="newAdminEmail" placeholder="user@example.com" />
-        <button id="addAdminBtn">Add Admin</button>
-        <div id="adminManageMessage" class="msg"></div>
-        <p class="small">
-          This email must be a registered Firebase Auth user (create it in console or via sign up).
-        </p>
-      </div>
-
-      <!-- MATCH PREDICTION & RECORDING -->
-      <div class="card" id="matchCard">
-        <h2 style="font-size:1.1rem; text-align:left;">2 vs 2 Match</h2>
-
-        <label>Team A - Player 1</label>
-        <select id="teamA1"></select>
-
-        <label>Team A - Player 2</label>
-        <select id="teamA2"></select>
-
-        <label>Team B - Player 1</label>
-        <select id="teamB1"></select>
-
-        <label>Team B - Player 2</label>
-        <select id="teamB2"></select>
-
-        <label for="scoreA">Final Score (Team A)</label>
-        <input type="number" id="scoreA" placeholder="e.g. 11" />
-
-        <label for="scoreB">Final Score (Team B)</label>
-        <input type="number" id="scoreB" placeholder="e.g. 9" />
-
-        <label for="kFactor">Base K-Factor (rating sensitivity)</label>
-        <input type="number" id="kFactor" value="32" min="1" max="100" />
-
-        <button id="calcProbBtn">Calculate Win Probability</button>
-        <div id="probabilityDisplay" class="msg"></div>
-
-        <button id="recordAWinBtn" class="admin-only" style="margin-top:8px;">
-          Record Result: Team A Won
-        </button>
-        <button id="recordBWinBtn" class="admin-only" style="margin-top:5px; background:#28a745;">
-          Record Result: Team B Won
-        </button>
-
-        <div id="matchMessage" class="msg"></div>
-        <p class="small">
-          Elo change is scaled by score difference. Example: 11–10 → small change, 11–1 → bigger change.
-        </p>
-      </div>
+      <h2 style="margin-top:25px;">Recent Matches</h2>
+      <table id="matchesTable">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Team A</th>
+            <th>Team B</th>
+            <th>Winner</th>
+            <th>Score</th>
+            <th>Prob A</th>
+            <th>Prob B</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
     </div>
 
-    <!-- LEADERBOARD -->
-    <h2>Leaderboard</h2>
-    <table id="leaderboardTable">
-      <thead>
-        <tr>
-          <th>Rank</th>
-          <th>Name</th>
-          <th>Rating</th>
-          <th>wins</th>
-          <th>Losses</th>
-          <th>Matches</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+    <!-- TAB: PLAYERS -->
+    <div id="tab-players" class="tab-content">
+      <h2>Players</h2>
+      <p class="small">
+        Just the player list. Use Admin tab to add new players.
+      </p>
+      <ul id="playerList" class="player-list"></ul>
+      <p class="small">
+        Admins will see delete buttons here to remove players.
+      </p>
+    </div>
 
-    <!-- RECENT MATCHES -->
-    <h2 style="margin-top:25px;">Recent Matches</h2>
-    <table id="matchesTable">
-      <thead>
-        <tr>
-          <th>Time</th>
-          <th>Team A</th>
-          <th>Team B</th>
-          <th>Winner</th>
-          <th>Score</th>
-          <th>Prob A</th>
-          <th>Prob B</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+    <!-- TAB: STATS -->
+    <div id="tab-stats" class="tab-content">
+      <h2>Player Statistics</h2>
+      <div class="card">
+        <label for="statsPlayerSelect">Select Player</label>
+        <select id="statsPlayerSelect"></select>
+        <button id="loadStatsBtn">Load Stats</button>
+        <div id="statsMessage" class="msg"></div>
+      </div>
+
+      <div class="card" style="margin-top:15px;">
+        <h3 style="text-align:left;">Summary</h3>
+        <div id="statsSummary">
+          <!-- Filled by JS -->
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:15px;">
+        <h3 style="text-align:left;">Rating History</h3>
+        <canvas id="ratingChart" height="200"></canvas>
+      </div>
+
+      <h3 style="margin-top:20px;">Match History for Selected Player</h3>
+      <table id="playerMatchesTable">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Team A</th>
+            <th>Team B</th>
+            <th>Result</th>
+            <th>Score</th>
+            <th>Point Diff</th>
+            <th>Rating After</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <!-- TAB: ADMIN -->
+    <div id="tab-admin" class="tab-content">
+      <div class="flex">
+        <!-- LOGIN -->
+        <div class="card" style="max-width:400px;">
+          <h2 style="font-size:1.1rem; text-align:left;">Admin Login</h2>
+          <label for="adminEmail">Email</label>
+          <input type="email" id="adminEmail" placeholder="admin@example.com" />
+          <label for="adminPassword">Password</label>
+          <input type="password" id="adminPassword" placeholder="Password" />
+          <button id="loginBtn">Login as Admin</button>
+          <button id="logoutBtn" style="margin-top:5px; background:#dc3545;">Logout</button>
+          <div id="authMessage" class="msg"></div>
+          <p class="small" id="adminStatus">Not logged in.</p>
+        </div>
+
+        <!-- PLAYER MGMT -->
+        <div class="card admin-only" id="adminPlayerCard">
+          <h2 style="font-size:1.1rem; text-align:left;">Add Player</h2>
+          <label for="newPlayerName">Player Name</label>
+          <input type="text" id="newPlayerName" placeholder="e.g., John Doe" />
+          <label for="initialRating">Initial Rating (default 1500)</label>
+          <input type="number" id="initialRating" value="1500" />
+          <button id="addPlayerBtn">Add Player</button>
+          <div id="playerMessage" class="msg"></div>
+          <p class="small">
+            No reset button. To remove all data, use the Firestore console.
+          </p>
+        </div>
+
+        <!-- ADMIN MGMT -->
+        <div class="card admin-only" id="adminManagementCard">
+          <h2 style="font-size:1.1rem; text-align:left;">Admin Management</h2>
+          <label for="newAdminEmail">Add New Admin by Email</label>
+          <input type="email" id="newAdminEmail" placeholder="user@example.com" />
+          <button id="addAdminBtn">Add Admin</button>
+          <div id="adminManageMessage" class="msg"></div>
+          <p class="small">
+            The email must be a registered Firebase Auth user (create in Firebase console or via sign-up).
+          </p>
+        </div>
+      </div>
+    </div>
 
     <p class="small" style="margin-top:15px;">
       All data is stored in Firestore. Only admins can modify data; normal users have read-only access.
@@ -239,25 +341,50 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <!-- Chart.js for rating history graph -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <script>
     // TODO 1: Replace with your own Firebase config from Project Settings.
     const firebaseConfig = {
-      apiKey: "AIzaSyCxH9Zda7Yx31CN3jimkUZkuDEg4ecaqQ8",
-      authDomain: "pickleball-elo.firebaseapp.com",
-      projectId: "pickleball-elo",
-      storageBucket: "pickleball-elo.firebasestorage.app",
-      messagingSenderId: "115251632176",
-      appId: "1:115251632176:web:20c5cd2a72ad37c44bf5f5"
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
     };
 
     // TODO 2: Set this to your master admin email (same as in Firestore rules).
-    const MASTER_ADMIN_EMAIL = "swaksharsen@gmail.com";
+    const MASTER_ADMIN_EMAIL = "master.admin@example.com";
 
     // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     const auth = firebase.auth();
+
+    // ----- TAB LOGIC -----
+    const tabButtons = document.querySelectorAll(".tab-button");
+    const tabContents = {
+      matches: document.getElementById("tab-matches"),
+      players: document.getElementById("tab-players"),
+      stats: document.getElementById("tab-stats"),
+      admin: document.getElementById("tab-admin")
+    };
+
+    tabButtons.forEach(btn => {
+      btn.addEventListener("click", () => {
+        const tab = btn.getAttribute("data-tab");
+
+        tabButtons.forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+
+        Object.keys(tabContents).forEach(k => {
+          tabContents[k].classList.remove("active");
+        });
+        tabContents[tab].classList.add("active");
+      });
+    });
 
     // ----- DOM references -----
     const loginBtn = document.getElementById("loginBtn");
@@ -285,16 +412,25 @@
     const kFactorInput = document.getElementById("kFactor");
     const calcProbBtn = document.getElementById("calcProbBtn");
     const probabilityDisplay = document.getElementById("probabilityDisplay");
-    const recordAWinBtn = document.getElementById("recordAWinBtn");
-    const recordBWinBtn = document.getElementById("recordBWinBtn");
+    const recordMatchBtn = document.getElementById("recordMatchBtn");
     const matchMessageDiv = document.getElementById("matchMessage");
 
     const leaderboardBody = document.querySelector("#leaderboardTable tbody");
     const matchesBody = document.querySelector("#matchesTable tbody");
+    const playerListUl = document.getElementById("playerList");
+
+    const statsPlayerSelect = document.getElementById("statsPlayerSelect");
+    const loadStatsBtn = document.getElementById("loadStatsBtn");
+    const statsMessageDiv = document.getElementById("statsMessage");
+    const statsSummaryDiv = document.getElementById("statsSummary");
+    const playerMatchesBody = document.querySelector("#playerMatchesTable tbody");
+    const ratingChartCanvas = document.getElementById("ratingChart");
+
+    let ratingChart = null;
 
     let currentUser = null;
     let isAdmin = false;
-    let players = []; // array of {id, name, rating, wins, losses, matches}
+    let players = []; // {id, name, rating, wins, losses, matches}
 
     // ----- Utility functions -----
 
@@ -325,6 +461,8 @@
       document.querySelectorAll(".admin-only").forEach(el => {
         el.style.display = visible ? "block" : "none";
       });
+      // Also toggle delete buttons in player list
+      updatePlayerListUI();
     }
 
     // ----- Authentication -----
@@ -438,6 +576,16 @@
       }
     });
 
+    async function deletePlayer(playerId) {
+      if (!isAdmin) return;
+      if (!confirm("Are you sure you want to delete this player? This will NOT remove their matches.")) return;
+      try {
+        await db.collection("players").doc(playerId).delete();
+      } catch (err) {
+        alert("Error deleting player: " + err.message);
+      }
+    }
+
     // Real-time listener for players (sorted by rating)
     db.collection("players")
       .orderBy("rating", "desc")
@@ -448,6 +596,8 @@
         });
         renderLeaderboard();
         fillPlayerSelects();
+        updatePlayerListUI();
+        updateStatsPlayerSelect();
       });
 
     function renderLeaderboard() {
@@ -476,6 +626,25 @@
           opt.textContent = p.name + " (" + p.rating + ")";
           sel.appendChild(opt);
         });
+      });
+    }
+
+    function updatePlayerListUI() {
+      playerListUl.innerHTML = "";
+      players.forEach(p => {
+        const li = document.createElement("li");
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = p.name;
+        li.appendChild(nameSpan);
+
+        if (isAdmin) {
+          const delBtn = document.createElement("button");
+          delBtn.textContent = "Delete";
+          delBtn.className = "delete-btn";
+          delBtn.addEventListener("click", () => deletePlayer(p.id));
+          li.appendChild(delBtn);
+        }
+        playerListUl.appendChild(li);
       });
     }
 
@@ -579,7 +748,9 @@
       probabilityDisplay.classList.add("success");
     });
 
-    async function recordMatch(winnerTeamLabel) {
+    recordMatchBtn.addEventListener("click", () => recordMatch());
+
+    async function recordMatch() {
       matchMessageDiv.textContent = "";
       matchMessageDiv.className = "msg";
 
@@ -605,17 +776,8 @@
       }
       const { scoreA, scoreB } = scoreResult;
 
-      // Check that scores are consistent with declared winner
-      if (winnerTeamLabel === "A" && scoreA <= scoreB) {
-        matchMessageDiv.textContent = "Team A is marked as winner but has not more points.";
-        matchMessageDiv.classList.add("error");
-        return;
-      }
-      if (winnerTeamLabel === "B" && scoreB <= scoreA) {
-        matchMessageDiv.textContent = "Team B is marked as winner but has not more points.";
-        matchMessageDiv.classList.add("error");
-        return;
-      }
+      // Auto-detect winner
+      const winnerTeamLabel = scoreA > scoreB ? "A" : "B";
 
       const baseK = parseInt(kFactorInput.value, 10);
       const K = isNaN(baseK) || baseK <= 0 ? 32 : baseK;
@@ -625,10 +787,7 @@
       const Ea = expectedScore(rA, rB);
       const Eb = 1 - Ea;
 
-      // ---- Score-difference weighting ----
-      // scoreDiff = abs(scoreA - scoreB)
-      // marginFactor = 1 + scoreDiff / 10
-      // effective K = K * marginFactor
+      // Score-difference weighting
       const scoreDiff = Math.abs(scoreA - scoreB);
       const marginFactor = 1 + (scoreDiff / 10);
       const kEff = K * marginFactor;
@@ -651,12 +810,14 @@
 
         const batch = db.batch();
         const updates = [];
+        const playerRatings = {}; // store rating before/after per player
 
-        // Update Team A players
+        // Team A players
         teamA.forEach(id => {
           const p = freshPlayers[id];
           if (!p) return;
           const newRating = Math.round(p.rating + kEff * (SA - Ea));
+          playerRatings[id] = { before: p.rating, after: newRating };
           updates.push({
             id: p.id,
             data: {
@@ -668,11 +829,12 @@
           });
         });
 
-        // Update Team B players
+        // Team B players
         teamB.forEach(id => {
           const p = freshPlayers[id];
           if (!p) return;
           const newRating = Math.round(p.rating + kEff * (SB - Eb));
+          playerRatings[id] = { before: p.rating, after: newRating };
           updates.push({
             id: p.id,
             data: {
@@ -684,7 +846,7 @@
           });
         });
 
-        // Apply updates
+        // Apply rating updates
         updates.forEach(u => {
           const ref = db.collection("players").doc(u.id);
           batch.update(ref, u.data);
@@ -704,7 +866,8 @@
           scoreA,
           scoreB,
           marginFactor,
-          kEffective: kEff
+          kEffective: kEff,
+          playerRatings // rating before/after for each of the 4 players
         };
         batch.set(matchRef, matchData);
 
@@ -718,9 +881,6 @@
         matchMessageDiv.classList.add("error");
       }
     }
-
-    recordAWinBtn.addEventListener("click", () => recordMatch("A"));
-    recordBWinBtn.addEventListener("click", () => recordMatch("B"));
 
     // ----- Recent matches listener -----
 
@@ -759,7 +919,204 @@
           matchesBody.appendChild(row);
         });
       });
+
+    // ----- Stats tab -----
+
+    function updateStatsPlayerSelect() {
+      statsPlayerSelect.innerHTML = "<option value=''>-- Select Player --</option>";
+      players.forEach(p => {
+        const opt = document.createElement("option");
+        opt.value = p.id;
+        opt.textContent = p.name + " (" + p.rating + ")";
+        statsPlayerSelect.appendChild(opt);
+      });
+    }
+
+    loadStatsBtn.addEventListener("click", () => loadPlayerStats());
+
+    async function loadPlayerStats() {
+      statsMessageDiv.textContent = "";
+      statsMessageDiv.className = "msg";
+      statsSummaryDiv.innerHTML = "";
+      playerMatchesBody.innerHTML = "";
+      if (ratingChart) {
+        ratingChart.destroy();
+        ratingChart = null;
+      }
+
+      const playerId = statsPlayerSelect.value;
+      if (!playerId) {
+        statsMessageDiv.textContent = "Please select a player.";
+        statsMessageDiv.classList.add("error");
+        return;
+      }
+
+      const player = players.find(p => p.id === playerId);
+      if (!player) {
+        statsMessageDiv.textContent = "Player not found.";
+        statsMessageDiv.classList.add("error");
+        return;
+      }
+
+      try {
+        // Get matches where this player was in teamA or teamB
+        // We'll do two queries and merge:
+        const q1 = db.collection("matches").where("teamA", "array-contains", playerId).get();
+        const q2 = db.collection("matches").where("teamB", "array-contains", playerId).get();
+        const [snapA, snapB] = await Promise.all([q1, q2]);
+
+        const matches = [];
+        snapA.forEach(doc => matches.push({ id: doc.id, ...doc.data() }));
+        snapB.forEach(doc => matches.push({ id: doc.id, ...doc.data() }));
+
+        // Remove duplicates if any
+        const seen = new Set();
+        const uniqueMatches = [];
+        matches.forEach(m => {
+          if (!seen.has(m.id)) {
+            seen.add(m.id);
+            uniqueMatches.push(m);
+          }
+        });
+
+        // Sort by time ascending for graph
+        uniqueMatches.sort((a, b) => {
+          const ta = a.timestamp?.toMillis ? a.timestamp.toMillis() : 0;
+          const tb = b.timestamp?.toMillis ? b.timestamp.toMillis() : 0;
+          return ta - tb;
+        });
+
+        // Stats counters
+        let wins = 0;
+        let losses = 0;
+
+        const ratingHistory = []; // {time, rating}
+
+        uniqueMatches.forEach(m => {
+          const teamOfPlayer = (m.teamA || []).includes(playerId) ? "A" : "B";
+          const playerWon = m.winner === teamOfPlayer;
+          if (playerWon) wins++; else losses++;
+
+          const prMap = m.playerRatings || {};
+          const pr = prMap[playerId];
+          if (pr && typeof pr.after === "number") {
+            const t = m.timestamp?.toMillis ? m.timestamp.toMillis() : null;
+            ratingHistory.push({ time: t, rating: pr.after, timestamp: m.timestamp });
+          }
+        });
+
+        // If no rating history from matches, at least show current rating
+        if (ratingHistory.length === 0) {
+          ratingHistory.push({
+            time: Date.now(),
+            rating: player.rating,
+            timestamp: null
+          });
+        }
+
+        // Highest & lowest rating
+        let highest = ratingHistory[0];
+        let lowest = ratingHistory[0];
+        ratingHistory.forEach(r => {
+          if (r.rating > highest.rating) highest = r;
+          if (r.rating < lowest.rating) lowest = r;
+        });
+
+        const highestTimeStr = highest.timestamp ? timeString(highest.timestamp) : "N/A";
+        const lowestTimeStr = lowest.timestamp ? timeString(lowest.timestamp) : "N/A";
+
+        statsSummaryDiv.innerHTML = `
+          <p><b>Player:</b> ${player.name}</p>
+          <p><b>Current Elo:</b> ${player.rating}</p>
+          <p><b>Total Matches:</b> ${wins + losses}</p>
+          <p><b>Wins:</b> ${wins}</p>
+          <p><b>Losses:</b> ${losses}</p>
+          <p><b>Highest Elo:</b> ${highest.rating} <span class="small">(at ${highestTimeStr})</span></p>
+          <p><b>Lowest Elo:</b> ${lowest.rating} <span class="small">(at ${lowestTimeStr})</span></p>
+        `;
+
+        // Fill match table (for this player)
+        playerMatchesBody.innerHTML = "";
+        uniqueMatches.sort((a, b) => {
+          const ta = a.timestamp?.toMillis ? a.timestamp.toMillis() : 0;
+          const tb = b.timestamp?.toMillis ? b.timestamp.toMillis() : 0;
+          return tb - ta; // most recent first in table
+        });
+
+        uniqueMatches.forEach(m => {
+          const row = document.createElement("tr");
+          const teamAString = (m.teamA || [])
+            .map(id => players.find(p => p.id === id)?.name || id)
+            .join(" & ");
+          const teamBString = (m.teamB || [])
+            .map(id => players.find(p => p.id === id)?.name || id)
+            .join(" & ");
+
+          const teamOfPlayer = (m.teamA || []).includes(playerId) ? "A" : "B";
+          const playerWon = m.winner === teamOfPlayer;
+          const resultStr = playerWon ? "Win" : "Loss";
+          const scoreStr = (m.scoreA != null && m.scoreB != null)
+            ? `${m.scoreA} - ${m.scoreB}`
+            : "-";
+          const scoreDiff = (m.scoreA != null && m.scoreB != null)
+            ? Math.abs(m.scoreA - m.scoreB)
+            : "-";
+
+          const prMap = m.playerRatings || {};
+          const pr = prMap[playerId];
+          const ratingAfterStr = pr && typeof pr.after === "number" ? pr.after : "-";
+
+          row.innerHTML = `
+            <td>${m.timestamp ? timeString(m.timestamp) : ""}</td>
+            <td>${teamAString}</td>
+            <td>${teamBString}</td>
+            <td>${resultStr}</td>
+            <td>${scoreStr}</td>
+            <td>${scoreDiff}</td>
+            <td>${ratingAfterStr}</td>
+          `;
+          playerMatchesBody.appendChild(row);
+        });
+
+        // Build rating chart (time vs rating)
+        const labels = ratingHistory.map(r =>
+          r.timestamp ? timeString(r.timestamp) : "N/A"
+        );
+        const data = ratingHistory.map(r => r.rating);
+
+        if (ratingChart) {
+          ratingChart.destroy();
+        }
+        ratingChart = new Chart(ratingChartCanvas.getContext("2d"), {
+          type: "line",
+          data: {
+            labels,
+            datasets: [{
+              label: "Elo Rating",
+              data,
+              tension: 0.3
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: {
+                title: { display: true, text: "Match Time" }
+              },
+              y: {
+                title: { display: true, text: "Rating" }
+              }
+            }
+          }
+        });
+
+      } catch (err) {
+        console.error(err);
+        statsMessageDiv.textContent = "Error loading stats: " + err.message;
+        statsMessageDiv.classList.add("error");
+      }
+    }
   </script>
 </body>
 </html>
-
