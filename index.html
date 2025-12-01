@@ -417,7 +417,7 @@
         .map(id => players.find(p => p.id === id))
         .filter(Boolean)
         .map(p => p.rating);
-      if (!ratings.length) return 1500;
+      if (!ratings.length) return 1600;
       return ratings.reduce((a,b)=>a+b,0) / ratings.length;
     }
 
@@ -498,7 +498,7 @@
       try {
         await db.collection("players").add({
           name,
-          rating: 1500,
+          rating: 1600,
           wins: 0,
           losses: 0,
           matches: 0
