@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Pickleball Elo Ratings</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f4f4f4;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 30px auto;
+      background: #ffffff;
+      padding: 20px 25px 40px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+      border-radius: 8px;
+    }
+
+    h1, h2 {
+      text-align: center;
+      margin-top: 0;
+    }
+
+    .flex {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    .card {
+      flex: 1 1 260px;
+      background: #fafafa;
+      border-radius: 8px;
+      padding: 15px 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: bold;
+      font-size: 0.9rem;
+    }
+
+    select, input, button {
+      width: 100%;
+      padding: 8px 10px;
+      margin-bottom: 12px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      font-size: 0.95rem;
+      box-sizing: border-box;
+    }
+
+    button {
+      cursor: pointer;
+      font-weight: bold;
+      border: none;
+      background: #007bff;
+      color: white;
+      transition: background 0.2s ease;
+    }
+
+    button:hover {
+      background: #0056b3;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      font-size: 0.95rem;
+    }
+
+    th, td {
+      padding: 8px 10px;
+      border-bottom: 1px solid #ddd;
+      text-align: center;
+    }
+
+    th {
+      background: #f0f0f0;
+    }
+
+    tr:nth-child(even) {
+      background: #fbfbfb;
+    }
+
+    .msg {
+      margin-top: 10px;
+      font-size: 0.9rem;
+    }
+
+    .msg.error {
+      color: #b00020;
+    }
+
+    .msg.success {
+      color: #0a7b16;
+    }
+
+    .small {
+      font-size: 0.8rem;
+      color: #666;
+      margin-top: 10px;
+      text-align: center;
+    }
+
+    @media (max-width: 600px) {
+      th, td {
+        font-size: 0.8rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Pickleball Elo Ratings</h1>
+    <p style="text-align:center; margin-bottom: 5px;">
+      Track Elo ratings for your 10 players.
+    </p>
+    <p class="small">
+      Enter match results below. Elo updates instantly in the rating table.
+    </p>
+
+    <div class="flex">
+      <div class="card">
+        <h2 style="font-size:1.1rem; text-align:left;">Record a Match</h2>
+        <label for="winnerSelect">Winner</label>
+        <select id="winnerSelect"></select>
+
+        <label for="loserSelect">Loser</label>
+        <select id="loserSelect"></select>
+
+        <label for="kFactor">K-Factor (rating sensitivity)</label>
+        <input type="number" id="kFactor" value="32" min="1" max="100" />
+
+        <button id="recordMatchBtn">Record Match</button>
+
+        <div id="message" class="msg"></div>
+      </div>
+
+      <div class="card">
+        <h2 style="font-size:1.1rem; text-align:left;">Add / Reset Players</h2>
+        <label for="playerNames">
+          Player Names (one per line, max 10)
+        </label>
+        <textarea id="playerNames" rows="8" style="width:100%;resize:vertical;"></textarea>
+        <button id="resetPlayersBtn">Reset Players</button>
+        <p class="small">
+          Default: 10 players named Player 1–Player 10 at 1500 rating.
+        </p>
+      </div>
+    </div>
+
+    <h2>Leaderboard</h2>
+    <table id="playersTable">
+      <thead>
+        <tr>
+          <th>Rank</th>
+          <th>Name</th>
+          <th>Rating</th>
+          <th>Wins</th>
+          <th>Losses</th>
+          <th>Matches</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <p class="small">
+      Ratings are stored in your browser (localStorage). Clearing browser data will reset them.
+    </p>
+  </div>
+
+  <script>
+    // -----------------------------
+    // Data structure and constants
+    // -----------------------------
+
+    const STORAGE_KEY = "pickleballEloPlayers_v1";
+
+    let players = [];
+
+    // Default 10 players at 1500
+    function defaultPlayers() {
+      const arr = [];
+      for (let i = 1; i <= 10; i++) {
+        arr.push({
+          id: i,
+          name: "Player " + i,
+          rating: 1500,
+          wins: 0,
+          losses: 0,
+          matches: 0
+        });
+      }
+      return arr;
+    }
+
+    // -----------------------------
+    // Local storage helpers
+    // -----------------------------
+
+    function loadPlayersFromStorage() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        players = defaultPlayers();
+        savePlayersToStorage();
+      } else {
+        try {
+          players = JSON.parse(raw);
+        } catch (e) {
+          console.error("Error parsing saved data, resetting to default.", e);
+          players = defaultPlayers();
+          savePlayersToStorage();
+        }
+      }
+    }
+
+    function savePlayersToStorage() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(players));
+    }
+
+    // -----------------------------
+    // Elo calculation
+    // -----------------------------
+
+    function expectedScore(ratingA, ratingB) {
+      return 1 / (1 + Math.pow(10, (ratingB - ratingA) / 400));
+    }
+
+    function updateElo(winnerId, loserId, kFactor) {
+      const winner = players.find(p => p.id === winnerId);
+      const loser = players.find(p => p.id === loserId);
+
+      if (!winner || !loser) return;
+
+      const Ra = winner.rating;
+      const Rb = loser.rating;
+
+      const Ea = expectedScore(Ra, Rb);
+      const Eb = 1 - Ea;
+
+      const Sa = 1; // winner
+      const Sb = 0; // loser
+
+      winner.rating = Math.round(Ra + kFactor * (Sa - Ea));
+      loser.rating = Math.round(Rb + kFactor * (Sb - Eb));
+
+      // Update basic stats
+      winner.wins += 1;
+      winner.matches += 1;
+      loser.losses += 1;
+      loser.matches += 1;
+    }
+
+    // -----------------------------
+    // UI rendering
+    // -----------------------------
+
+    const playersTableBody = document.querySelector("#playersTable tbody");
+    const winnerSelect = document.getElementById("winnerSelect");
+    const loserSelect = document.getElementById("loserSelect");
+    const messageDiv = document.getElementById("message");
+    const kFactorInput = document.getElementById("kFactor");
+    const playerNamesTextarea = document.getElementById("playerNames");
+    const recordMatchBtn = document.getElementById("recordMatchBtn");
+    const resetPlayersBtn = document.getElementById("resetPlayersBtn");
+
+    function renderPlayers() {
+      // Sort players by rating, descending
+      const sorted = [...players].sort((a, b) => b.rating - a.rating);
+
+      // Render table
+      playersTableBody.innerHTML = "";
+      sorted.forEach((p, index) => {
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+          <td>${index + 1}</td>
+          <td>${p.name}</td>
+          <td>${p.rating}</td>
+          <td>${p.wins}</td>
+          <td>${p.losses}</td>
+          <td>${p.matches}</td>
+        `;
+        playersTableBody.appendChild(tr);
+      });
+
+      // Render selects
+      renderPlayerSelects();
+    }
+
+    function renderPlayerSelects() {
+      // Keep the same ordering as players array for selects
+      winnerSelect.innerHTML = "";
+      loserSelect.innerHTML = "";
+
+      players.forEach(p => {
+        const optionW = document.createElement("option");
+        optionW.value = p.id;
+        optionW.textContent = p.name;
+        winnerSelect.appendChild(optionW);
+
+        const optionL = document.createElement("option");
+        optionL.value = p.id;
+        optionL.textContent = p.name;
+        loserSelect.appendChild(optionL);
+      });
+
+      // Set default winner = first, loser = second if possible
+      if (players.length >= 2) {
+        winnerSelect.value = players[0].id;
+        loserSelect.value = players[1].id;
+      }
+    }
+
+    // -----------------------------
+    // Event handlers
+    // -----------------------------
+
+    recordMatchBtn.addEventListener("click", () => {
+      const winnerId = parseInt(winnerSelect.value, 10);
+      const loserId = parseInt(loserSelect.value, 10);
+      const kFactor = parseInt(kFactorInput.value, 10);
+
+      messageDiv.textContent = "";
+      messageDiv.className = "msg";
+
+      if (isNaN(winnerId) || isNaN(loserId)) {
+        messageDiv.textContent = "Please select both winner and loser.";
+        messageDiv.classList.add("error");
+        return;
+      }
+
+      if (winnerId === loserId) {
+        messageDiv.textContent = "Winner and loser cannot be the same player.";
+        messageDiv.classList.add("error");
+        return;
+      }
+
+      if (isNaN(kFactor) || kFactor <= 0) {
+        messageDiv.textContent = "Please enter a valid K-factor.";
+        messageDiv.classList.add("error");
+        return;
+      }
+
+      updateElo(winnerId, loserId, kFactor);
+      savePlayersToStorage();
+      renderPlayers();
+
+      const winnerName = players.find(p => p.id === winnerId)?.name || "Winner";
+      const loserName = players.find(p => p.id === loserId)?.name || "Loser";
+      messageDiv.textContent = `Match recorded: ${winnerName} defeated ${loserName}.`;
+      messageDiv.classList.add("success");
+    });
+
+    resetPlayersBtn.addEventListener("click", () => {
+      const rawText = playerNamesTextarea.value.trim();
+      const lines = rawText.split(/\r?\n/).filter(line => line.trim() !== "");
+
+      if (lines.length === 0) {
+        // If no names given, revert to default
+        players = defaultPlayers();
+      } else {
+        const maxPlayers = 10;
+        const limited = lines.slice(0, maxPlayers);
+
+        players = limited.map((name, idx) => ({
+          id: idx + 1,
+          name: name.trim(),
+          rating: 1500,
+          wins: 0,
+          losses: 0,
+          matches: 0
+        }));
+      }
+
+      savePlayersToStorage();
+      renderPlayers();
+
+      messageDiv.textContent = "Players reset successfully.";
+      messageDiv.className = "msg success";
+    });
+
+    // -----------------------------
+    // Initial load
+    // -----------------------------
+
+    loadPlayersFromStorage();
+    renderPlayers();
+  </script>
+</body>
+</html>
