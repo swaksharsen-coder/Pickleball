@@ -2,1121 +2,188 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Pickleball 2v2 Elo Ratings</title>
+  <title>Pickleball 2v2 Player Ratings</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f4f4;
-      margin: 0;
-      padding: 0;
-    }
-    .container {
-      max-width: 1100px;
-      margin: 20px auto;
-      background: #fff;
-      padding: 20px 25px 30px;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-    }
-    h1, h2 {
-      margin-top: 0;
-      text-align: center;
-    }
-    .tabs {
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-    }
-    .tab-button {
-      padding: 8px 14px;
-      border-radius: 20px;
-      border: 1px solid #007bff;
-      background: #fff;
-      cursor: pointer;
-      font-size: 0.9rem;
-    }
-    .tab-button.active {
-      background: #007bff;
-      color: #fff;
-    }
-    .tab-content {
-      display: none;
-    }
-    .tab-content.active {
-      display: block;
-    }
-    .flex {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 20px;
-      margin-top: 10px;
-    }
-    .card {
-      flex: 1 1 300px;
-      background: #fafafa;
-      padding: 15px 20px;
-      border-radius: 8px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-    }
-    label {
-      display: block;
-      margin-bottom: 4px;
-      font-size: 0.9rem;
-      font-weight: bold;
-    }
-    input, select, button, textarea {
-      width: 100%;
-      padding: 7px 9px;
-      margin-bottom: 10px;
-      border-radius: 4px;
-      border: 1px solid #ccc;
-      font-size: 0.9rem;
-      box-sizing: border-box;
-    }
-    button {
-      cursor: pointer;
-      border: none;
-      font-weight: bold;
-      background: #007bff;
-      color: #fff;
-      transition: background 0.2s ease;
-    }
-    button:hover {
-      background: #0056b3;
-    }
-    button[disabled] {
-      background: #999;
-      cursor: not-allowed;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 15px;
-      font-size: 0.9rem;
-    }
-    th, td {
-      padding: 7px 8px;
-      border-bottom: 1px solid #ddd;
-      text-align: center;
-    }
-    th {
-      background: #f0f0f0;
-    }
-    tr:nth-child(even) {
-      background: #fbfbfb;
-    }
-    .msg {
-      font-size: 0.85rem;
-      margin-top: 5px;
-    }
-    .msg.error {
-      color: #b00020;
-    }
-    .msg.success {
-      color: #0a7b16;
-    }
-    .small {
-      font-size: 0.8rem;
-      color: #666;
-      margin-top: 5px;
-    }
-    .admin-only {
-      display: none; /* shown when admin is logged in */
-    }
-    .player-list {
-      list-style: none;
-      padding-left: 0;
-    }
-    .player-list li {
-      padding: 4px 0;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .delete-btn {
-      width: auto;
-      padding: 3px 8px;
-      font-size: 0.75rem;
-      background: #dc3545;
-    }
-    @media (max-width: 700px) {
-      th, td {
-        font-size: 0.8rem;
-      }
-    }
+    body { font-family: Arial; background:#f4f4f4; margin:0; padding:0; }
+    .container { max-width:1100px; margin:20px auto; background:#fff; padding:20px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.12); }
+    h1,h2 { text-align:center; }
+    .tabs { display:flex; justify-content:center; gap:10px; margin-bottom:15px; }
+    .tab-button { padding:8px 14px; border-radius:20px; border:1px solid #007bff; cursor:pointer; }
+    .tab-button.active { background:#007bff; color:#fff; }
+    .tab-content { display:none; }
+    .tab-content.active { display:block; }
+    .flex { display:flex; flex-wrap:wrap; gap:20px; }
+    .card { flex:1 1 300px; background:#fafafa; padding:15px; border-radius:8px; }
+    label { font-weight:bold; font-size:0.9rem; }
+    input,select,button { width:100%; padding:7px; margin-bottom:10px; }
+    button { background:#007bff; color:white; border:none; font-weight:bold; cursor:pointer; }
+    table { width:100%; border-collapse:collapse; margin-top:10px; }
+    th,td { border-bottom:1px solid #ddd; padding:6px; text-align:center; }
+    th { background:#eee; }
+    .admin-only { display:none; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Pickleball 2 vs 2 Elo Ratings</h1>
+<div class="container">
+<h1>Pickleball 2v2 Player Ratings</h1>
 
-    <!-- NAV TABS -->
-    <div class="tabs">
-      <button class="tab-button active" data-tab="matches">Matches</button>
-      <button class="tab-button" data-tab="players">Players</button>
-      <button class="tab-button" data-tab="stats">Stats</button>
-      <button class="tab-button" data-tab="admin">Admin</button>
+<div class="tabs">
+  <button class="tab-button active" data-tab="matches">Matches</button>
+  <button class="tab-button" data-tab="players">Players</button>
+  <button class="tab-button" data-tab="stats">Stats</button>
+  <button class="tab-button" data-tab="admin">Admin</button>
+</div>
+
+<!-- MATCHES TAB -->
+<div id="tab-matches" class="tab-content active">
+  <div class="flex">
+    <div class="card">
+      <h2>Record Match</h2>
+      <label>Team A</label>
+      <select id="teamA1"></select>
+      <select id="teamA2"></select>
+
+      <label>Team B</label>
+      <select id="teamB1"></select>
+      <select id="teamB2"></select>
+
+      <label>Score Team A</label><input id="scoreA" type="number">
+      <label>Score Team B</label><input id="scoreB" type="number">
+
+      <button id="recordBtn" class="admin-only">Record Match</button>
+      <div id="matchMsg"></div>
     </div>
 
-    <!-- TAB: MATCHES -->
-    <div id="tab-matches" class="tab-content active">
-      <div class="flex">
-        <div class="card">
-          <h2 style="font-size:1.1rem; text-align:left;">Record 2 vs 2 Match</h2>
-
-          <label>Team A - Player 1</label>
-          <select id="teamA1"></select>
-
-          <label>Team A - Player 2</label>
-          <select id="teamA2"></select>
-
-          <label>Team B - Player 1</label>
-          <select id="teamB1"></select>
-
-          <label>Team B - Player 2</label>
-          <select id="teamB2"></select>
-
-          <label for="scoreA">Final Score (Team A)</label>
-          <input type="number" id="scoreA" placeholder="e.g. 11" />
-
-          <label for="scoreB">Final Score (Team B)</label>
-          <input type="number" id="scoreB" placeholder="e.g. 9" />
-
-          <label for="kFactor">Base K-Factor (rating sensitivity)</label>
-          <input type="number" id="kFactor" value="32" min="1" max="100" />
-
-          <button id="calcProbBtn">Calculate Win Probability</button>
-          <div id="probabilityDisplay" class="msg"></div>
-
-          <!-- Single button; winner inferred from scores -->
-          <button id="recordMatchBtn" class="admin-only" style="margin-top:8px;">
-            Record Match Result (Auto-Detect Winner)
-          </button>
-          <div id="matchMessage" class="msg"></div>
-
-          <p class="small">
-            Elo change is scaled by score difference. Example: 11–10 → small change, 11–1 → larger change.
-          </p>
-        </div>
-
-        <div class="card">
-          <h2 style="font-size:1.1rem; text-align:left;">Leaderboard</h2>
-          <table id="leaderboardTable">
-            <thead>
-              <tr>
-                <th>Rank</th>
-                <th>Name</th>
-                <th>Rating</th>
-                <th>Wins</th>
-                <th>Losses</th>
-                <th>Matches</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-
-      <h2 style="margin-top:25px;">Recent Matches</h2>
-      <table id="matchesTable">
-        <thead>
-          <tr>
-            <th>Time</th>
-            <th>Team A</th>
-            <th>Team B</th>
-            <th>Winner</th>
-            <th>Score</th>
-            <th>Prob A</th>
-            <th>Prob B</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+    <div class="card">
+      <h2>Leaderboard</h2>
+      <table><thead>
+        <tr><th>Rank</th><th>Name</th><th>Rating</th><th>W</th><th>L</th></tr>
+      </thead><tbody id="leaderboard"></tbody></table>
     </div>
-
-    <!-- TAB: PLAYERS -->
-    <div id="tab-players" class="tab-content">
-      <h2>Players</h2>
-      <p class="small">
-        Just the player list. Use Admin tab to add new players.
-      </p>
-      <ul id="playerList" class="player-list"></ul>
-      <p class="small">
-        Admins will see delete buttons here to remove players.
-      </p>
-    </div>
-
-    <!-- TAB: STATS -->
-    <div id="tab-stats" class="tab-content">
-      <h2>Player Statistics</h2>
-      <div class="card">
-        <label for="statsPlayerSelect">Select Player</label>
-        <select id="statsPlayerSelect"></select>
-        <button id="loadStatsBtn">Load Stats</button>
-        <div id="statsMessage" class="msg"></div>
-      </div>
-
-      <div class="card" style="margin-top:15px;">
-        <h3 style="text-align:left;">Summary</h3>
-        <div id="statsSummary">
-          <!-- Filled by JS -->
-        </div>
-      </div>
-
-      <div class="card" style="margin-top:15px;">
-        <h3 style="text-align:left;">Rating History</h3>
-        <canvas id="ratingChart" height="200"></canvas>
-      </div>
-
-      <h3 style="margin-top:20px;">Match History for Selected Player</h3>
-      <table id="playerMatchesTable">
-        <thead>
-          <tr>
-            <th>Time</th>
-            <th>Team A</th>
-            <th>Team B</th>
-            <th>Result</th>
-            <th>Score</th>
-            <th>Point Diff</th>
-            <th>Rating After</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
-
-    <!-- TAB: ADMIN -->
-    <div id="tab-admin" class="tab-content">
-      <div class="flex">
-        <!-- LOGIN -->
-        <div class="card" style="max-width:400px;">
-          <h2 style="font-size:1.1rem; text-align:left;">Admin Login</h2>
-          <label for="adminEmail">Email</label>
-          <input type="email" id="adminEmail" placeholder="admin@example.com" />
-          <label for="adminPassword">Password</label>
-          <input type="password" id="adminPassword" placeholder="Password" />
-          <button id="loginBtn">Login as Admin</button>
-          <button id="logoutBtn" style="margin-top:5px; background:#dc3545;">Logout</button>
-          <div id="authMessage" class="msg"></div>
-          <p class="small" id="adminStatus">Not logged in.</p>
-        </div>
-
-        <!-- PLAYER MGMT -->
-        <div class="card admin-only" id="adminPlayerCard">
-          <h2 style="font-size:1.1rem; text-align:left;">Add Player</h2>
-          <label for="newPlayerName">Player Name</label>
-          <input type="text" id="newPlayerName" placeholder="e.g., John Doe" />
-          <label for="initialRating">Initial Rating (default 1500)</label>
-          <input type="number" id="initialRating" value="1500" />
-          <button id="addPlayerBtn">Add Player</button>
-          <div id="playerMessage" class="msg"></div>
-          <p class="small">
-            No reset button. To remove all data, use the Firestore console.
-          </p>
-        </div>
-
-        <!-- ADMIN MGMT -->
-        <div class="card admin-only" id="adminManagementCard">
-          <h2 style="font-size:1.1rem; text-align:left;">Admin Management</h2>
-          <label for="newAdminEmail">Add New Admin by Email</label>
-          <input type="email" id="newAdminEmail" placeholder="user@example.com" />
-          <button id="addAdminBtn">Add Admin</button>
-          <div id="adminManageMessage" class="msg"></div>
-          <p class="small">
-            The email must be a registered Firebase Auth user (create in Firebase console or via sign-up).
-          </p>
-        </div>
-      </div>
-    </div>
-
-    <p class="small" style="margin-top:15px;">
-      All data is stored in Firestore. Only admins can modify data; normal users have read-only access.
-    </p>
   </div>
+</div>
 
-  <!-- Firebase SDKs (compat) -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-  <!-- Chart.js for rating history graph -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- PLAYERS TAB -->
+<div id="tab-players" class="tab-content">
+  <h2>Players</h2>
+  <ul id="playerList"></ul>
+</div>
 
-  <script>
-    // TODO 1: Replace with your own Firebase config from Project Settings.
-    const firebaseConfig = {
-      apiKey: "AIzaSyCxH9Zda7Yx31CN3jimkUZkuDEg4ecaqQ8",
+<!-- STATS TAB -->
+<div id="tab-stats" class="tab-content">
+  <h2>Player Stats</h2>
+  <select id="statsPlayer"></select>
+  <button id="loadStats">Load Stats</button>
+  <div id="statsOut"></div>
+  <table><thead><tr><th>Date</th><th>Result</th><th>Score</th><th>Rating After</th></tr></thead>
+  <tbody id="statsTable"></tbody></table>
+</div>
+
+<!-- ADMIN TAB -->
+<div id="tab-admin" class="tab-content">
+  <div class="flex">
+    <div class="card">
+      <label>Email</label><input id="loginEmail">
+      <label>Password</label><input id="loginPass" type="password">
+      <button id="loginBtn">Login</button>
+    </div>
+
+    <div class="card admin-only">
+      <input id="newPlayer" placeholder="Player Name">
+      <button id="addPlayer">Add Player</button>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<!-- FIREBASE -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCxH9Zda7Yx31CN3jimkUZkuDEg4ecaqQ8",
   authDomain: "pickleball-elo.firebaseapp.com",
   projectId: "pickleball-elo",
   storageBucket: "pickleball-elo.firebasestorage.app",
   messagingSenderId: "115251632176",
-  appId: "1:115251632176:web:20c5cd2a72ad37c44bf5f5",
-    };
+  appId: "1:115251632176:web:20c5cd2a72ad37c44bf5f5"
+};
 
-    // TODO 2: Set this to your master admin email (same as in Firestore rules).
-    const MASTER_ADMIN_EMAIL = "swaksharsen@gmail.com";
+const MASTER_ADMIN_EMAIL = "swaksharsen@gmail.com";
 
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-    const auth = firebase.auth();
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
 
-    // ----- TAB LOGIC -----
-    const tabButtons = document.querySelectorAll(".tab-button");
-    const tabContents = {
-      matches: document.getElementById("tab-matches"),
-      players: document.getElementById("tab-players"),
-      stats: document.getElementById("tab-stats"),
-      admin: document.getElementById("tab-admin")
-    };
+let isAdmin=false;
+let players=[];
 
-    tabButtons.forEach(btn => {
-      btn.addEventListener("click", () => {
-        const tab = btn.getAttribute("data-tab");
+auth.onAuthStateChanged(u=>{
+  isAdmin = u && u.email===MASTER_ADMIN_EMAIL;
+  document.querySelectorAll(".admin-only").forEach(e=>e.style.display=isAdmin?"block":"none");
+});
 
-        tabButtons.forEach(b => b.classList.remove("active"));
-        btn.classList.add("active");
+// TAB SWITCHING
+document.querySelectorAll(".tab-button").forEach(b=>{
+  b.onclick=()=> {
+    document.querySelectorAll(".tab-button").forEach(x=>x.classList.remove("active"));
+    document.querySelectorAll(".tab-content").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    document.getElementById("tab-"+b.dataset.tab).classList.add("active");
+  }
+});
 
-        Object.keys(tabContents).forEach(k => {
-          tabContents[k].classList.remove("active");
-        });
-        tabContents[tab].classList.add("active");
-      });
+// LOGIN
+loginBtn.onclick=()=> auth.signInWithEmailAndPassword(loginEmail.value, loginPass.value);
+
+// ADD PLAYER
+addPlayer.onclick=()=> db.collection("players").add({name:newPlayer.value,rating:1500,wins:0,losses:0});
+
+// LOAD PLAYERS
+db.collection("players").onSnapshot(s=>{
+  players=[]; leaderboard.innerHTML=""; playerList.innerHTML=""; statsPlayer.innerHTML="";
+  s.forEach((d,i)=>{
+    let p={id:d.id,...d.data()}; players.push(p);
+    leaderboard.innerHTML+=`<tr><td>${i+1}</td><td>${p.name}</td><td>${p.rating}</td><td>${p.wins}</td><td>${p.losses}</td></tr>`;
+    playerList.innerHTML+=`<li>${p.name}</li>`;
+    ["teamA1","teamA2","teamB1","teamB2","statsPlayer"].forEach(id=>{
+      document.getElementById(id).innerHTML+=`<option value="${p.id}">${p.name}</option>`;
     });
+  });
+});
 
-    // ----- DOM references -----
-    const loginBtn = document.getElementById("loginBtn");
-    const logoutBtn = document.getElementById("logoutBtn");
-    const adminEmailInput = document.getElementById("adminEmail");
-    const adminPasswordInput = document.getElementById("adminPassword");
-    const authMessageDiv = document.getElementById("authMessage");
-    const adminStatusP = document.getElementById("adminStatus");
-
-    const addPlayerBtn = document.getElementById("addPlayerBtn");
-    const newPlayerNameInput = document.getElementById("newPlayerName");
-    const initialRatingInput = document.getElementById("initialRating");
-    const playerMessageDiv = document.getElementById("playerMessage");
-
-    const newAdminEmailInput = document.getElementById("newAdminEmail");
-    const addAdminBtn = document.getElementById("addAdminBtn");
-    const adminManageMessageDiv = document.getElementById("adminManageMessage");
-
-    const teamA1Select = document.getElementById("teamA1");
-    const teamA2Select = document.getElementById("teamA2");
-    const teamB1Select = document.getElementById("teamB1");
-    const teamB2Select = document.getElementById("teamB2");
-    const scoreAInput = document.getElementById("scoreA");
-    const scoreBInput = document.getElementById("scoreB");
-    const kFactorInput = document.getElementById("kFactor");
-    const calcProbBtn = document.getElementById("calcProbBtn");
-    const probabilityDisplay = document.getElementById("probabilityDisplay");
-    const recordMatchBtn = document.getElementById("recordMatchBtn");
-    const matchMessageDiv = document.getElementById("matchMessage");
-
-    const leaderboardBody = document.querySelector("#leaderboardTable tbody");
-    const matchesBody = document.querySelector("#matchesTable tbody");
-    const playerListUl = document.getElementById("playerList");
-
-    const statsPlayerSelect = document.getElementById("statsPlayerSelect");
-    const loadStatsBtn = document.getElementById("loadStatsBtn");
-    const statsMessageDiv = document.getElementById("statsMessage");
-    const statsSummaryDiv = document.getElementById("statsSummary");
-    const playerMatchesBody = document.querySelector("#playerMatchesTable tbody");
-    const ratingChartCanvas = document.getElementById("ratingChart");
-
-    let ratingChart = null;
-
-    let currentUser = null;
-    let isAdmin = false;
-    let players = []; // {id, name, rating, wins, losses, matches}
-
-    // ----- Utility functions -----
-
-    function expectedScore(rA, rB) {
-      return 1 / (1 + Math.pow(10, (rB - rA) / 400));
-    }
-
-    function teamRating(playerIds) {
-      const ratings = playerIds
-        .map(id => players.find(p => p.id === id))
-        .filter(p => !!p)
-        .map(p => p.rating);
-      if (ratings.length === 0) return 1500;
-      const sum = ratings.reduce((a, b) => a + b, 0);
-      return sum / ratings.length;
-    }
-
-    function formatPercent(x) {
-      return (x * 100).toFixed(1) + "%";
-    }
-
-    function timeString(timestamp) {
-      const d = timestamp && timestamp.toDate ? timestamp.toDate() : new Date();
-      return d.toLocaleString();
-    }
-
-    function setAdminUI(visible) {
-      document.querySelectorAll(".admin-only").forEach(el => {
-        el.style.display = visible ? "block" : "none";
-      });
-      // Also toggle delete buttons in player list
-      updatePlayerListUI();
-    }
-
-    // ----- Authentication -----
-
-    loginBtn.addEventListener("click", () => {
-      const email = adminEmailInput.value.trim();
-      const pass = adminPasswordInput.value.trim();
-      authMessageDiv.textContent = "";
-      authMessageDiv.className = "msg";
-
-      if (!email || !pass) {
-        authMessageDiv.textContent = "Please enter email and password.";
-        authMessageDiv.classList.add("error");
-        return;
-      }
-
-      auth.signInWithEmailAndPassword(email, pass)
-        .then(() => {
-          authMessageDiv.textContent = "Logged in successfully.";
-          authMessageDiv.classList.add("success");
-        })
-        .catch(err => {
-          authMessageDiv.textContent = "Login failed: " + err.message;
-          authMessageDiv.classList.add("error");
-        });
+// RECORD MATCH
+recordBtn.onclick=()=>{
+  let A=[teamA1.value,teamA2.value], B=[teamB1.value,teamB2.value];
+  let sA=+scoreA.value, sB=+scoreB.value;
+  let AW = sA>sB;
+  A.concat(B).forEach(id=>{
+    let p=players.find(x=>x.id===id);
+    let win = (A.includes(id)&&AW)||(B.includes(id)&&!AW);
+    db.collection("players").doc(id).update({
+      rating:p.rating+(win?20:-10),
+      wins:p.wins+(win?1:0),
+      losses:p.losses+(win?0:1)
     });
-
-    logoutBtn.addEventListener("click", () => {
-      auth.signOut();
-    });
-
-    async function updateAdminStatus(user) {
-      if (!user) {
-        currentUser = null;
-        isAdmin = false;
-        adminStatusP.textContent = "Not logged in.";
-        setAdminUI(false);
-        return;
-      }
-
-      currentUser = user;
-
-      // Master admin is always admin
-      if (user.email === MASTER_ADMIN_EMAIL) {
-        isAdmin = true;
-        adminStatusP.textContent = "Logged in as master admin: " + user.email;
-        setAdminUI(true);
-        return;
-      }
-
-      // Otherwise check admins collection for this email
-      try {
-        const doc = await db.collection("admins").doc(user.email).get();
-        isAdmin = doc.exists;
-      } catch (e) {
-        console.error("Error checking admin list:", e);
-        isAdmin = false;
-      }
-
-      if (isAdmin) {
-        adminStatusP.textContent = "Logged in as admin: " + user.email;
-      } else {
-        adminStatusP.textContent = "Logged in (not admin): " + user.email;
-      }
-      setAdminUI(isAdmin);
-    }
-
-    auth.onAuthStateChanged(user => {
-      authMessageDiv.textContent = "";
-      authMessageDiv.className = "msg";
-      updateAdminStatus(user);
-    });
-
-    // ----- Player management -----
-
-    addPlayerBtn.addEventListener("click", async () => {
-      playerMessageDiv.textContent = "";
-      playerMessageDiv.className = "msg";
-
-      if (!isAdmin) {
-        playerMessageDiv.textContent = "Only admins can add players.";
-        playerMessageDiv.classList.add("error");
-        return;
-      }
-
-      const name = newPlayerNameInput.value.trim();
-      const rating = parseInt(initialRatingInput.value, 10);
-
-      if (!name) {
-        playerMessageDiv.textContent = "Player name is required.";
-        playerMessageDiv.classList.add("error");
-        return;
-      }
-
-      const validRating = isNaN(rating) ? 1500 : rating;
-
-      try {
-        await db.collection("players").add({
-          name,
-          rating: validRating,
-          wins: 0,
-          losses: 0,
-          matches: 0
-        });
-        newPlayerNameInput.value = "";
-        playerMessageDiv.textContent = "Player added.";
-        playerMessageDiv.classList.add("success");
-      } catch (err) {
-        playerMessageDiv.textContent = "Error adding player: " + err.message;
-        playerMessageDiv.classList.add("error");
-      }
-    });
-
-    async function deletePlayer(playerId) {
-      if (!isAdmin) return;
-      if (!confirm("Are you sure you want to delete this player? This will NOT remove their matches.")) return;
-      try {
-        await db.collection("players").doc(playerId).delete();
-      } catch (err) {
-        alert("Error deleting player: " + err.message);
-      }
-    }
-
-    // Real-time listener for players (sorted by rating)
-    db.collection("players")
-      .orderBy("rating", "desc")
-      .onSnapshot(snapshot => {
-        players = [];
-        snapshot.forEach(doc => {
-          players.push({ id: doc.id, ...doc.data() });
-        });
-        renderLeaderboard();
-        fillPlayerSelects();
-        updatePlayerListUI();
-        updateStatsPlayerSelect();
-      });
-
-    function renderLeaderboard() {
-      leaderboardBody.innerHTML = "";
-      players.forEach((p, index) => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${index + 1}</td>
-          <td>${p.name}</td>
-          <td>${p.rating}</td>
-          <td>${p.wins}</td>
-          <td>${p.losses}</td>
-          <td>${p.matches}</td>
-        `;
-        leaderboardBody.appendChild(tr);
-      });
-    }
-
-    function fillPlayerSelects() {
-      const selects = [teamA1Select, teamA2Select, teamB1Select, teamB2Select];
-      selects.forEach(sel => {
-        sel.innerHTML = "<option value=''>-- Select Player --</option>";
-        players.forEach(p => {
-          const opt = document.createElement("option");
-          opt.value = p.id;
-          opt.textContent = p.name + " (" + p.rating + ")";
-          sel.appendChild(opt);
-        });
-      });
-    }
-
-    function updatePlayerListUI() {
-      playerListUl.innerHTML = "";
-      players.forEach(p => {
-        const li = document.createElement("li");
-        const nameSpan = document.createElement("span");
-        nameSpan.textContent = p.name;
-        li.appendChild(nameSpan);
-
-        if (isAdmin) {
-          const delBtn = document.createElement("button");
-          delBtn.textContent = "Delete";
-          delBtn.className = "delete-btn";
-          delBtn.addEventListener("click", () => deletePlayer(p.id));
-          li.appendChild(delBtn);
-        }
-        playerListUl.appendChild(li);
-      });
-    }
-
-    // ----- Admin management -----
-
-    addAdminBtn.addEventListener("click", async () => {
-      adminManageMessageDiv.textContent = "";
-      adminManageMessageDiv.className = "msg";
-
-      if (!isAdmin) {
-        adminManageMessageDiv.textContent = "Only admins can add new admins.";
-        adminManageMessageDiv.classList.add("error");
-        return;
-      }
-
-      const email = newAdminEmailInput.value.trim();
-      if (!email) {
-        adminManageMessageDiv.textContent = "Please enter an email.";
-        adminManageMessageDiv.classList.add("error");
-        return;
-      }
-
-      try {
-        await db.collection("admins").doc(email).set({
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        adminManageMessageDiv.textContent = "Admin added: " + email;
-        adminManageMessageDiv.classList.add("success");
-        newAdminEmailInput.value = "";
-      } catch (err) {
-        adminManageMessageDiv.textContent = "Error adding admin: " + err.message;
-        adminManageMessageDiv.classList.add("error");
-      }
-    });
-
-    // ----- Match prediction & recording -----
-
-    function getSelectedTeams() {
-      const a1 = teamA1Select.value;
-      const a2 = teamA2Select.value;
-      const b1 = teamB1Select.value;
-      const b2 = teamB2Select.value;
-      return {
-        teamA: [a1, a2].filter(x => x),
-        teamB: [b1, b2].filter(x => x)
-      };
-    }
-
-    function validateTeams(teamA, teamB) {
-      if (teamA.length !== 2 || teamB.length !== 2) {
-        return "Each team must have exactly 2 players.";
-      }
-      const all = [...teamA, ...teamB];
-      const unique = new Set(all);
-      if (unique.size !== all.length) {
-        return "A player cannot be on both teams.";
-      }
-      if (players.length === 0) {
-        return "No players in the database.";
-      }
-      return null;
-    }
-
-    function readScores() {
-      const scoreA = parseInt(scoreAInput.value, 10);
-      const scoreB = parseInt(scoreBInput.value, 10);
-      if (isNaN(scoreA) || isNaN(scoreB)) {
-        return { error: "Please enter valid scores for both teams." };
-      }
-      if (scoreA === scoreB) {
-        return { error: "Scores cannot be equal; there must be a winner." };
-      }
-      if (scoreA < 0 || scoreB < 0) {
-        return { error: "Scores cannot be negative." };
-      }
-      return { scoreA, scoreB };
-    }
-
-    calcProbBtn.addEventListener("click", () => {
-      probabilityDisplay.textContent = "";
-      probabilityDisplay.className = "msg";
-
-      const { teamA, teamB } = getSelectedTeams();
-      const err = validateTeams(teamA, teamB);
-      if (err) {
-        probabilityDisplay.textContent = err;
-        probabilityDisplay.classList.add("error");
-        return;
-      }
-
-      const rA = teamRating(teamA);
-      const rB = teamRating(teamB);
-      const Ea = expectedScore(rA, rB);
-      const Eb = 1 - Ea;
-
-      probabilityDisplay.innerHTML =
-        "Team A rating: " + rA.toFixed(1) + "<br>" +
-        "Team B rating: " + rB.toFixed(1) + "<br>" +
-        "Win probability — Team A: <b>" + formatPercent(Ea) +
-        "</b>, Team B: <b>" + formatPercent(Eb) + "</b>.";
-      probabilityDisplay.classList.add("success");
-    });
-
-    recordMatchBtn.addEventListener("click", () => recordMatch());
-
-    async function recordMatch() {
-      matchMessageDiv.textContent = "";
-      matchMessageDiv.className = "msg";
-
-      if (!isAdmin) {
-        matchMessageDiv.textContent = "Only admins can record match results.";
-        matchMessageDiv.classList.add("error");
-        return;
-      }
-
-      const { teamA, teamB } = getSelectedTeams();
-      const err = validateTeams(teamA, teamB);
-      if (err) {
-        matchMessageDiv.textContent = err;
-        matchMessageDiv.classList.add("error");
-        return;
-      }
-
-      const scoreResult = readScores();
-      if (scoreResult.error) {
-        matchMessageDiv.textContent = scoreResult.error;
-        matchMessageDiv.classList.add("error");
-        return;
-      }
-      const { scoreA, scoreB } = scoreResult;
-
-      // Auto-detect winner
-      const winnerTeamLabel = scoreA > scoreB ? "A" : "B";
-
-      const baseK = parseInt(kFactorInput.value, 10);
-      const K = isNaN(baseK) || baseK <= 0 ? 32 : baseK;
-
-      const rA = teamRating(teamA);
-      const rB = teamRating(teamB);
-      const Ea = expectedScore(rA, rB);
-      const Eb = 1 - Ea;
-
-      // Score-difference weighting
-      const scoreDiff = Math.abs(scoreA - scoreB);
-      const marginFactor = 1 + (scoreDiff / 10);
-      const kEff = K * marginFactor;
-
-      const teamAWon = (winnerTeamLabel === "A");
-      const SA = teamAWon ? 1 : 0;
-      const SB = teamAWon ? 0 : 1;
-
-      const playerIds = [...teamA, ...teamB];
-
-      try {
-        // Load fresh player data
-        const docs = await Promise.all(
-          playerIds.map(id => db.collection("players").doc(id).get())
-        );
-        const freshPlayers = {};
-        docs.forEach(doc => {
-          freshPlayers[doc.id] = { id: doc.id, ...doc.data() };
-        });
-
-        const batch = db.batch();
-        const updates = [];
-        const playerRatings = {}; // store rating before/after per player
-
-        // Team A players
-        teamA.forEach(id => {
-          const p = freshPlayers[id];
-          if (!p) return;
-          const newRating = Math.round(p.rating + kEff * (SA - Ea));
-          playerRatings[id] = { before: p.rating, after: newRating };
-          updates.push({
-            id: p.id,
-            data: {
-              rating: newRating,
-              wins: p.wins + (teamAWon ? 1 : 0),
-              losses: p.losses + (teamAWon ? 0 : 1),
-              matches: p.matches + 1
-            }
-          });
-        });
-
-        // Team B players
-        teamB.forEach(id => {
-          const p = freshPlayers[id];
-          if (!p) return;
-          const newRating = Math.round(p.rating + kEff * (SB - Eb));
-          playerRatings[id] = { before: p.rating, after: newRating };
-          updates.push({
-            id: p.id,
-            data: {
-              rating: newRating,
-              wins: p.wins + (teamAWon ? 0 : 1),
-              losses: p.losses + (teamAWon ? 1 : 0),
-              matches: p.matches + 1
-            }
-          });
-        });
-
-        // Apply rating updates
-        updates.forEach(u => {
-          const ref = db.collection("players").doc(u.id);
-          batch.update(ref, u.data);
-        });
-
-        // Save match record
-        const matchRef = db.collection("matches").doc();
-        const matchData = {
-          timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-          teamA,
-          teamB,
-          winner: teamAWon ? "A" : "B",
-          teamARatingBefore: rA,
-          teamBRatingBefore: rB,
-          probA: Ea,
-          probB: Eb,
-          scoreA,
-          scoreB,
-          marginFactor,
-          kEffective: kEff,
-          playerRatings // rating before/after for each of the 4 players
-        };
-        batch.set(matchRef, matchData);
-
-        await batch.commit();
-
-        matchMessageDiv.textContent = "Match recorded successfully.";
-        matchMessageDiv.classList.add("success");
-      } catch (err) {
-        console.error(err);
-        matchMessageDiv.textContent = "Error recording match: " + err.message;
-        matchMessageDiv.classList.add("error");
-      }
-    }
-
-    // ----- Recent matches listener -----
-
-    db.collection("matches")
-      .orderBy("timestamp", "desc")
-      .limit(30)
-      .onSnapshot(snapshot => {
-        matchesBody.innerHTML = "";
-        snapshot.forEach(doc => {
-          const m = doc.data();
-          const row = document.createElement("tr");
-
-          const teamAString = (m.teamA || [])
-            .map(id => players.find(p => p.id === id)?.name || id)
-            .join(" & ");
-          const teamBString = (m.teamB || [])
-            .map(id => players.find(p => p.id === id)?.name || id)
-            .join(" & ");
-
-          const winnerLabel = m.winner === "A" ? "Team A" : "Team B";
-          const probA = (m.probA != null) ? formatPercent(m.probA) : "-";
-          const probB = (m.probB != null) ? formatPercent(m.probB) : "-";
-          const scoreStr = (m.scoreA != null && m.scoreB != null)
-            ? `${m.scoreA} - ${m.scoreB}`
-            : "-";
-
-          row.innerHTML = `
-            <td>${m.timestamp ? timeString(m.timestamp) : ""}</td>
-            <td>${teamAString}</td>
-            <td>${teamBString}</td>
-            <td>${winnerLabel}</td>
-            <td>${scoreStr}</td>
-            <td>${probA}</td>
-            <td>${probB}</td>
-          `;
-          matchesBody.appendChild(row);
-        });
-      });
-
-    // ----- Stats tab -----
-
-    function updateStatsPlayerSelect() {
-      statsPlayerSelect.innerHTML = "<option value=''>-- Select Player --</option>";
-      players.forEach(p => {
-        const opt = document.createElement("option");
-        opt.value = p.id;
-        opt.textContent = p.name + " (" + p.rating + ")";
-        statsPlayerSelect.appendChild(opt);
-      });
-    }
-
-    loadStatsBtn.addEventListener("click", () => loadPlayerStats());
-
-    async function loadPlayerStats() {
-      statsMessageDiv.textContent = "";
-      statsMessageDiv.className = "msg";
-      statsSummaryDiv.innerHTML = "";
-      playerMatchesBody.innerHTML = "";
-      if (ratingChart) {
-        ratingChart.destroy();
-        ratingChart = null;
-      }
-
-      const playerId = statsPlayerSelect.value;
-      if (!playerId) {
-        statsMessageDiv.textContent = "Please select a player.";
-        statsMessageDiv.classList.add("error");
-        return;
-      }
-
-      const player = players.find(p => p.id === playerId);
-      if (!player) {
-        statsMessageDiv.textContent = "Player not found.";
-        statsMessageDiv.classList.add("error");
-        return;
-      }
-
-      try {
-        // Get matches where this player was in teamA or teamB
-        // We'll do two queries and merge:
-        const q1 = db.collection("matches").where("teamA", "array-contains", playerId).get();
-        const q2 = db.collection("matches").where("teamB", "array-contains", playerId).get();
-        const [snapA, snapB] = await Promise.all([q1, q2]);
-
-        const matches = [];
-        snapA.forEach(doc => matches.push({ id: doc.id, ...doc.data() }));
-        snapB.forEach(doc => matches.push({ id: doc.id, ...doc.data() }));
-
-        // Remove duplicates if any
-        const seen = new Set();
-        const uniqueMatches = [];
-        matches.forEach(m => {
-          if (!seen.has(m.id)) {
-            seen.add(m.id);
-            uniqueMatches.push(m);
-          }
-        });
-
-        // Sort by time ascending for graph
-        uniqueMatches.sort((a, b) => {
-          const ta = a.timestamp?.toMillis ? a.timestamp.toMillis() : 0;
-          const tb = b.timestamp?.toMillis ? b.timestamp.toMillis() : 0;
-          return ta - tb;
-        });
-
-        // Stats counters
-        let wins = 0;
-        let losses = 0;
-
-        const ratingHistory = []; // {time, rating}
-
-        uniqueMatches.forEach(m => {
-          const teamOfPlayer = (m.teamA || []).includes(playerId) ? "A" : "B";
-          const playerWon = m.winner === teamOfPlayer;
-          if (playerWon) wins++; else losses++;
-
-          const prMap = m.playerRatings || {};
-          const pr = prMap[playerId];
-          if (pr && typeof pr.after === "number") {
-            const t = m.timestamp?.toMillis ? m.timestamp.toMillis() : null;
-            ratingHistory.push({ time: t, rating: pr.after, timestamp: m.timestamp });
-          }
-        });
-
-        // If no rating history from matches, at least show current rating
-        if (ratingHistory.length === 0) {
-          ratingHistory.push({
-            time: Date.now(),
-            rating: player.rating,
-            timestamp: null
-          });
-        }
-
-        // Highest & lowest rating
-        let highest = ratingHistory[0];
-        let lowest = ratingHistory[0];
-        ratingHistory.forEach(r => {
-          if (r.rating > highest.rating) highest = r;
-          if (r.rating < lowest.rating) lowest = r;
-        });
-
-        const highestTimeStr = highest.timestamp ? timeString(highest.timestamp) : "N/A";
-        const lowestTimeStr = lowest.timestamp ? timeString(lowest.timestamp) : "N/A";
-
-        statsSummaryDiv.innerHTML = `
-          <p><b>Player:</b> ${player.name}</p>
-          <p><b>Current Elo:</b> ${player.rating}</p>
-          <p><b>Total Matches:</b> ${wins + losses}</p>
-          <p><b>Wins:</b> ${wins}</p>
-          <p><b>Losses:</b> ${losses}</p>
-          <p><b>Highest Elo:</b> ${highest.rating} <span class="small">(at ${highestTimeStr})</span></p>
-          <p><b>Lowest Elo:</b> ${lowest.rating} <span class="small">(at ${lowestTimeStr})</span></p>
-        `;
-
-        // Fill match table (for this player)
-        playerMatchesBody.innerHTML = "";
-        uniqueMatches.sort((a, b) => {
-          const ta = a.timestamp?.toMillis ? a.timestamp.toMillis() : 0;
-          const tb = b.timestamp?.toMillis ? b.timestamp.toMillis() : 0;
-          return tb - ta; // most recent first in table
-        });
-
-        uniqueMatches.forEach(m => {
-          const row = document.createElement("tr");
-          const teamAString = (m.teamA || [])
-            .map(id => players.find(p => p.id === id)?.name || id)
-            .join(" & ");
-          const teamBString = (m.teamB || [])
-            .map(id => players.find(p => p.id === id)?.name || id)
-            .join(" & ");
-
-          const teamOfPlayer = (m.teamA || []).includes(playerId) ? "A" : "B";
-          const playerWon = m.winner === teamOfPlayer;
-          const resultStr = playerWon ? "Win" : "Loss";
-          const scoreStr = (m.scoreA != null && m.scoreB != null)
-            ? `${m.scoreA} - ${m.scoreB}`
-            : "-";
-          const scoreDiff = (m.scoreA != null && m.scoreB != null)
-            ? Math.abs(m.scoreA - m.scoreB)
-            : "-";
-
-          const prMap = m.playerRatings || {};
-          const pr = prMap[playerId];
-          const ratingAfterStr = pr && typeof pr.after === "number" ? pr.after : "-";
-
-          row.innerHTML = `
-            <td>${m.timestamp ? timeString(m.timestamp) : ""}</td>
-            <td>${teamAString}</td>
-            <td>${teamBString}</td>
-            <td>${resultStr}</td>
-            <td>${scoreStr}</td>
-            <td>${scoreDiff}</td>
-            <td>${ratingAfterStr}</td>
-          `;
-          playerMatchesBody.appendChild(row);
-        });
-
-        // Build rating chart (time vs rating)
-        const labels = ratingHistory.map(r =>
-          r.timestamp ? timeString(r.timestamp) : "N/A"
-        );
-        const data = ratingHistory.map(r => r.rating);
-
-        if (ratingChart) {
-          ratingChart.destroy();
-        }
-        ratingChart = new Chart(ratingChartCanvas.getContext("2d"), {
-          type: "line",
-          data: {
-            labels,
-            datasets: [{
-              label: "Elo Rating",
-              data,
-              tension: 0.3
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-              x: {
-                title: { display: true, text: "Match Time" }
-              },
-              y: {
-                title: { display: true, text: "Rating" }
-              }
-            }
-          }
-        });
-
-      } catch (err) {
-        console.error(err);
-        statsMessageDiv.textContent = "Error loading stats: " + err.message;
-        statsMessageDiv.classList.add("error");
-      }
-    }
-  </script>
+  });
+};
+
+// STATS
+loadStats.onclick=async()=>{
+const pid=statsPlayer.value;
+statsOut.innerHTML=""; statsTable.innerHTML="";
+let q1=await db.collection("matches").where("teamA","array-contains",pid).get();
+let q2=await db.collection("matches").where("teamB","array-contains",pid).get();
+q1.docs.concat(q2.docs).forEach(d=>{
+  let m=d.data();
+  let r = (m.teamA.includes(pid)&&m.winner==="A") || (m.teamB.includes(pid)&&m.winner==="B");
+  statsTable.innerHTML+=`<tr><td>${new Date(m.timestamp.seconds*1000).toLocaleString()}</td><td>${r?"Win":"Loss"}</td><td>${m.scoreA}-${m.scoreB}</td><td>${m.playerRatings[pid].after}</td></tr>`;
+});
+};
+</script>
 </body>
 </html>
