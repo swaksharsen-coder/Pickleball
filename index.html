@@ -17,10 +17,22 @@
       margin-bottom:15px; flex-wrap:wrap;
     }
     .tab-button {
-      padding:8px 14px; border-radius:20px; border:1px solid #007bff;
-      background:#fff; cursor:pointer; font-size:0.9rem;
+      padding:8px 14px;
+      border-radius:20px;
+      border:1px solid #007bff;
+      background:#ffffff;
+      cursor:pointer;
+      font-size:0.9rem;
+      font-weight:600;
+      color:#007bff;        /* TEXT ALWAYS VISIBLE */
     }
-    .tab-button.active { background:#007bff; color:#fff; }
+    .tab-button:hover {
+      background:#e7f1ff;
+    }
+    .tab-button.active {
+      background:#007bff;
+      color:#ffffff;
+    }
     .tab-content { display:none; }
     .tab-content.active { display:block; }
     .flex { display:flex; flex-wrap:wrap; gap:20px; margin-top:10px; }
@@ -56,10 +68,6 @@
     .msg.success { color:#0a7b16; }
     .small { font-size:0.8rem; color:#666; margin-top:5px; }
     .admin-only { display:none; }
-    .player-list { list-style:none; padding-left:0; }
-    .player-list li {
-      padding:4px 0; display:flex; justify-content:space-between; align-items:center;
-    }
     .delete-btn {
       width:auto; padding:3px 8px; font-size:0.75rem;
       background:#dc3545; color:#fff;
@@ -108,9 +116,6 @@
           <label>Team 2 - Player 2</label>
           <select id="team2p2"></select>
 
-          <label for="kFactor">Base K-Factor (rating sensitivity)</label>
-          <input type="number" id="kFactor" value="32" min="1" max="100" />
-
           <button id="predictBtn" type="button">Predict Winning %</button>
           <div id="predictionDisplay" class="msg"></div>
 
@@ -123,7 +128,8 @@
           <button id="recordMatchBtn">Record Match (Winner auto-detected)</button>
           <div id="matchMessage" class="msg"></div>
           <p class="small">
-            Rating change is weighted by score difference. Bigger margin ⇒ bigger rating change.
+            Rating change is weighted by score difference.<br>
+            For each player: first 20 matches use K = 64; from match 21 onward K = 32.
           </p>
         </div>
       </div>
@@ -345,7 +351,6 @@
     const team1p2Select = document.getElementById("team1p2");
     const team2p1Select = document.getElementById("team2p1");
     const team2p2Select = document.getElementById("team2p2");
-    const kFactorInput = document.getElementById("kFactor");
     const predictBtn = document.getElementById("predictBtn");
     const predictionDisplay = document.getElementById("predictionDisplay");
     const score1Input = document.getElementById("score1");
@@ -697,7 +702,7 @@
       predictionDisplay.classList.add("success");
     });
 
-    // --- Record match (weighted score, full save) ---
+    // --- Record match: per-player K (64 first 20 matches, 32 afterwards) ---
     recordMatchBtn.addEventListener("click", async () => {
       matchMessageDiv.textContent = "";
       matchMessageDiv.className = "msg";
@@ -736,17 +741,13 @@
 
       const winnerTeam = s1 > s2 ? "team1" : "team2";
 
-      const baseK = parseInt(kFactorInput.value, 10);
-      const K = isNaN(baseK) || baseK <= 0 ? 32 : baseK;
-
       const r1 = teamRating(t1);
       const r2 = teamRating(t2);
       const E1 = expectedScore(r1, r2);
       const E2 = 1 - E1;
 
       const scoreDiff = Math.abs(s1 - s2);
-      const marginFactor = 1 + scoreDiff / 10;
-      const kEff = K * marginFactor;
+      const marginFactor = 1 + scoreDiff / 10;   // same for everyone in this match
 
       const S1 = (winnerTeam === "team1") ? 1 : 0;
       const S2 = (winnerTeam === "team2") ? 1 : 0;
@@ -763,13 +764,20 @@
         const batch = db.batch();
         const playerRatings = {};
 
+        function baseKForPlayer(p) {
+          const matchesPlayed = p.matches ?? (p.wins + p.losses);
+          return matchesPlayed < 20 ? 64 : 32;   // first 20 matches: 64, then 32
+        }
+
         // Team 1
         t1.forEach(id => {
           const p = fresh[id];
           if (!p) return;
           const before = p.rating;
+          const Kbase = baseKForPlayer(p);
+          const kEff = Kbase * marginFactor;
           const after = Math.round(before + kEff * (S1 - E1));
-          playerRatings[id] = { before, after };
+          playerRatings[id] = { before, after, Kbase, kEff };
           batch.update(db.collection("players").doc(id), {
             rating: after,
             wins: p.wins + (S1 ? 1 : 0),
@@ -783,8 +791,10 @@
           const p = fresh[id];
           if (!p) return;
           const before = p.rating;
+          const Kbase = baseKForPlayer(p);
+          const kEff = Kbase * marginFactor;
           const after = Math.round(before + kEff * (S2 - E2));
-          playerRatings[id] = { before, after };
+          playerRatings[id] = { before, after, Kbase, kEff };
           batch.update(db.collection("players").doc(id), {
             rating: after,
             wins: p.wins + (S2 ? 1 : 0),
@@ -807,8 +817,7 @@
           expected1: E1,
           expected2: E2,
           marginFactor,
-          kEffective: kEff,
-          playerRatings
+          playerRatings   // contains per-player before/after/Kbase/kEff
         });
 
         await batch.commit();
@@ -860,8 +869,10 @@
       let wins = 0;
       let losses = 0;
       matchesForPlayer.forEach(m => {
-        const inTeam1 = (m.team1 || m.teamA || []).includes(pid);
-        const inTeam2 = (m.team2 || m.teamB || []).includes(pid);
+        const t1 = m.team1 || m.teamA || [];
+        const t2 = m.team2 || m.teamB || [];
+        const inTeam1 = t1.includes(pid);
+        const inTeam2 = t2.includes(pid);
         let won = false;
         if (inTeam1 && (m.winner === "team1" || m.winner === "A")) won = true;
         if (inTeam2 && (m.winner === "team2" || m.winner === "B")) won = true;
@@ -933,7 +944,6 @@
       if (ids.length < 4) return null;
       let best = null;
 
-      // all combinations of 4
       for (let i = 0; i < ids.length; i++) {
         for (let j = i+1; j < ids.length; j++) {
           for (let k = j+1; k < ids.length; k++) {
@@ -1024,7 +1034,6 @@
         return;
       }
 
-      // Build rating history from matchesGlobal
       const history = [];
       matchesGlobal.forEach(m => {
         if (m.playerRatings && m.playerRatings[pid]) {
@@ -1037,7 +1046,6 @@
         }
       });
 
-      // If no match history, show flat line at current rating
       if (!history.length) {
         const now = new Date();
         history.push({
