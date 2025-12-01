@@ -284,6 +284,8 @@
     });
 
     // --- DOM references ---
+    const predictBtn = document.getElementById("predictBtn");
+const predictionDisplay = document.getElementById("predictionDisplay");
     const adminEmailInput = document.getElementById("adminEmail");
     const adminPasswordInput = document.getElementById("adminPassword");
     const loginBtn = document.getElementById("loginBtn");
@@ -361,6 +363,40 @@
       return ratings.reduce((a,b)=>a+b,0) / ratings.length;
     }
 
+predictBtn.addEventListener("click", () => {
+  predictionDisplay.textContent = "";
+  predictionDisplay.className = "msg";
+
+  const team1 = [team1p1Select.value, team1p2Select.value].filter(Boolean);
+  const team2 = [team2p1Select.value, team2p2Select.value].filter(Boolean);
+
+  if (team1.length !== 2 || team2.length !== 2) {
+    predictionDisplay.textContent = "Select 2 players for each team to calculate winning percentage.";
+    predictionDisplay.classList.add("error");
+    return;
+  }
+
+  const all = [...team1, ...team2];
+  if (new Set(all).size !== all.length) {
+    predictionDisplay.textContent = "A player cannot be on both teams.";
+    predictionDisplay.classList.add("error");
+    return;
+  }
+
+  const r1 = teamRating(team1);
+  const r2 = teamRating(team2);
+
+  const P1 = expectedScore(r1, r2);
+  const P2 = 1 - P1;
+
+  predictionDisplay.innerHTML =
+    `<b>${teamLabel(team1)}</b> Win Chance: <b>${(P1 * 100).toFixed(1)}%</b><br>` +
+    `<b>${teamLabel(team2)}</b> Win Chance: <b>${(P2 * 100).toFixed(1)}%</b>`;
+  predictionDisplay.classList.add("success");
+});
+
+
+    
     // --- Auth ---
     loginBtn.addEventListener("click", () => {
       const email = adminEmailInput.value.trim();
@@ -607,6 +643,7 @@
 
     // --- Record match (weighted score, full save) ---
     recordMatchBtn.addEventListener("click", async () => {
+      predictionDisplay.textContent = "";
       matchMessageDiv.textContent = "";
       matchMessageDiv.className = "msg";
       const t1 = [team1p1Select.value, team1p2Select.value].filter(Boolean);
