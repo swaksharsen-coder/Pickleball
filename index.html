@@ -89,7 +89,7 @@
     .google-btn:hover {
       background:#f4f4f4;
     }
-    .admin-tab { display:none; } /* Admin tab button hidden until user is admin */
+    .admin-tab { display:none; }
     @media (max-width:700px) {
       th, td { font-size:0.8rem; }
     }
@@ -339,6 +339,7 @@
       appId: "1:115251632176:web:20c5cd2a72ad37c44bf5f5"
     };
     const MASTER_ADMIN_EMAIL = "swaksharsen@gmail.com";
+    const BASE_RATING = 1600;
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
@@ -434,7 +435,7 @@
 
     // -------- Audit logging helper --------
     function logAction(action, details = {}) {
-      if (!currentUser) return Promise.resolve(); // writes already require login
+      if (!currentUser) return Promise.resolve();
       return db.collection("auditLogs").add({
         timestamp: firebase.firestore.FieldValue.serverTimestamp(),
         userEmail: currentUser.email || null,
@@ -452,7 +453,6 @@
       return d.toLocaleString();
     }
     function setAdminUI(visible) {
-      // show/hide admin-only elements
       document.querySelectorAll(".admin-only").forEach(el => {
         if (el.tagName === "TD" || el.tagName === "TH") {
           el.style.display = visible ? "table-cell" : "none";
@@ -460,7 +460,6 @@
           el.style.display = visible ? "block" : "none";
         }
       });
-      // show/hide Admin tab button
       if (adminTabButton) {
         adminTabButton.style.display = visible ? "inline-block" : "none";
       }
@@ -483,7 +482,7 @@
         .map(id => players.find(p => p.id === id))
         .filter(Boolean)
         .map(p => p.rating);
-      if (!ratings.length) return 1600;
+      if (!ratings.length) return BASE_RATING;
       return ratings.reduce((a,b)=>a+b,0) / ratings.length;
     }
 
@@ -603,7 +602,7 @@
       checkAdmin(user);
     });
 
-    // Player mgmt
+    // Player mgmt (admin only)
     addPlayerBtn.addEventListener("click", async () => {
       playerMessageDiv.textContent = "";
       playerMessageDiv.className = "msg";
@@ -626,7 +625,7 @@
       try {
         const ref = await db.collection("players").add({
           name,
-          rating: 1600,
+          rating: BASE_RATING,
           wins: 0,
           losses: 0,
           matches: 0
@@ -768,12 +767,12 @@
       });
       arr.forEach(m => {
         const tr = document.createElement("tr");
-        const t1 = m.team1 || m.teamA || [];
-        const t2 = m.team2 || m.teamB || [];
+        const t1 = m.team1 || [];
+        const t2 = m.team2 || [];
         const team1Label = teamLabel(t1);
         const team2Label = teamLabel(t2);
         const winnerLabel =
-          (m.winner === "team1" || m.winner === "A") ? team1Label : team2Label;
+          (m.winner === "team1") ? team1Label : team2Label;
         const scoreStr = (m.score1 != null && m.score2 != null)
           ? `${m.score1} - ${m.score2}` : "-";
         tr.innerHTML = `
@@ -840,7 +839,7 @@
       predictionDisplay.classList.add("success");
     });
 
-    // Record match – requires login; per-player K
+    // Record match – any logged-in user
     recordMatchBtn.addEventListener("click", async () => {
       matchMessageDiv.textContent = "";
       matchMessageDiv.className = "msg";
@@ -917,7 +916,7 @@
         t1.forEach(id => {
           const p = fresh[id];
           if (!p) return;
-          const before = p.rating;
+          const before = p.rating ?? BASE_RATING;
           const Kbase = baseKForPlayer(p);
           const kEff = Kbase * marginFactor;
           const after = Math.round(before + kEff * (S1 - E1));
@@ -934,7 +933,7 @@
         t2.forEach(id => {
           const p = fresh[id];
           if (!p) return;
-          const before = p.rating;
+          const before = p.rating ?? BASE_RATING;
           const Kbase = baseKForPlayer(p);
           const kEff = Kbase * marginFactor;
           const after = Math.round(before + kEff * (S2 - E2));
@@ -1014,20 +1013,20 @@
       }
 
       const matchesForPlayer = matchesGlobal.filter(m =>
-        (m.team1 || m.teamA || []).includes(pid) ||
-        (m.team2 || m.teamB || []).includes(pid)
+        (m.team1 || []).includes(pid) ||
+        (m.team2 || []).includes(pid)
       );
 
       let wins = 0;
       let losses = 0;
       matchesForPlayer.forEach(m => {
-        const t1 = m.team1 || m.teamA || [];
-        const t2 = m.team2 || m.teamB || [];
+        const t1 = m.team1 || [];
+        const t2 = m.team2 || [];
         const inTeam1 = t1.includes(pid);
         const inTeam2 = t2.includes(pid);
         let won = false;
-        if (inTeam1 && (m.winner === "team1" || m.winner === "A")) won = true;
-        if (inTeam2 && (m.winner === "team2" || m.winner === "B")) won = true;
+        if (inTeam1 && (m.winner === "team1")) won = true;
+        if (inTeam2 && (m.winner === "team2")) won = true;
         if (won) wins++; else losses++;
       });
 
@@ -1053,13 +1052,13 @@
         })
         .forEach(m => {
           const tr = document.createElement("tr");
-          const t1 = m.team1 || m.teamA || [];
-          const t2 = m.team2 || m.teamB || [];
+          const t1 = m.team1 || [];
+          const t2 = m.team2 || [];
           const team1Label = teamLabel(t1);
           const team2Label = teamLabel(t2);
           const inTeam1 = t1.includes(pid);
           const teamOfPlayer = inTeam1 ? "team1" : "team2";
-          const won = (m.winner === "team1" || m.winner === "A") === (teamOfPlayer === "team1");
+          const won = (m.winner === "team1") === (teamOfPlayer === "team1");
           const resultStr = won ? "Win" : "Loss";
           const scoreStr = (m.score1 != null && m.score2 != null)
             ? `${m.score1} - ${m.score2}` : "-";
@@ -1267,7 +1266,7 @@
       }
       const p = players.find(x => x.id === pid);
       if (!p) return;
-      editPlayerRatingInput.value = p.rating ?? 1600;
+      editPlayerRatingInput.value = p.rating ?? BASE_RATING;
       editPlayerWinsInput.value = p.wins ?? 0;
       editPlayerLossesInput.value = p.losses ?? 0;
       editPlayerMatchesInput.value = p.matches ?? (p.wins + p.losses);
